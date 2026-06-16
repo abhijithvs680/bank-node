@@ -508,6 +508,17 @@ function int16ToFloat32(input: Int16Array): Float32Array {
 
 // Buffer to store and play back 24kHz audio from Gemini
 let audioPlayStartTime = 0;
+let activeAudioSources: AudioBufferSourceNode[] = [];
+
+export function clearGeminiAudioQueue() {
+  if (geminiAudioCtx) {
+    audioPlayStartTime = geminiAudioCtx.currentTime;
+  }
+  activeAudioSources.forEach(s => {
+    try { s.stop(); } catch(e) {}
+  });
+  activeAudioSources = [];
+}
 function playGeminiAudioFrame(base64Data: string, sampleRate = 24000) {
   if (!geminiAudioCtx) return;
 
@@ -526,6 +537,11 @@ function playGeminiAudioFrame(base64Data: string, sampleRate = 24000) {
   const source = geminiAudioCtx.createBufferSource();
   source.buffer = audioBuffer;
   source.connect(geminiAudioCtx.destination);
+
+  source.onended = () => {
+    activeAudioSources = activeAudioSources.filter(s => s !== source);
+  };
+  activeAudioSources.push(source);
 
   const currentTime = geminiAudioCtx.currentTime;
   if (audioPlayStartTime < currentTime) {
@@ -660,6 +676,11 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
   }
 
   if (msg.serverContent) {
+    if (msg.serverContent.interrupted) {
+      console.log("🛑 User interrupted Gemini. Clearing audio queue...");
+      clearGeminiAudioQueue();
+    }
+
     const modelTurn = msg.serverContent.modelTurn;
     if (modelTurn && modelTurn.parts) {
       for (const part of modelTurn.parts) {
@@ -743,6 +764,7 @@ export function stopGeminiVoiceAgent() {
     geminiStream.getTracks().forEach(t => t.stop());
     geminiStream = null;
   }
+  clearGeminiAudioQueue();
   if (geminiAudioCtx) {
     geminiAudioCtx.close();
     geminiAudioCtx = null;
