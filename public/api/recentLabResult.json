@@ -1,0 +1,49 @@
+
+{
+  "ICU-2024-001": [
+    {
+      "testId": "lab-101",
+      "testName": "Complete Blood Count",
+      "value": "12.5",
+      "unit": "g/dL",
+      "normalRange": "12-16",
+      "status": "normal",
+      "timestamp": "2024-01-18T09:45:00Z",
+      "orderedBy": "Dr. Sarah Wilson"
+    },
+    {
+      "testId": "lab-102",
+      "testName": "Serum Potassium",
+      "value": "5.6",
+      "unit": "mmol/L",
+      "normalRange": "3.5-5.1",
+      "status": "high",
+      "timestamp": "2024-01-18T08:20:00Z",
+      "orderedBy": "Dr. Sarah Wilson"
+    }
+  ],
+  "ICU-2024-003": [
+    {
+      "testId": "lab-201",
+      "testName": "Arterial Blood Gas",
+      "value": "7.35",
+      "unit": "pH",
+      "normalRange": "7.35-7.45",
+      "status": "normal",
+      "timestamp": "2024-01-18T09:15:00Z",
+      "orderedBy": "Dr. Michael Chen"
+    }
+  ],
+  "ICU-2024-004": [
+    {
+      "testId": "lab-301",
+      "testName": "CRP",
+      "value": "22",
+      "unit": "mg/L",
+      "normalRange": "0-10",
+      "status": "high",
+      "timestamp": "2024-01-18T07:55:00Z",
+      "orderedBy": "Dr. Lisa Martinez"
+    }
+  ]
+}

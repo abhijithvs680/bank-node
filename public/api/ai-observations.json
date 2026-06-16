@@ -1,0 +1,41 @@
+{
+  "observations": [
+    {
+      "id": "ai-obs-001",
+      "type": "Clinical Alert",
+      "priority": "Medium",
+      "message": "Patient's heart rate has been consistently elevated above normal range for the past 4 hours. Consider evaluating for potential causes such as pain, anxiety, or medication effects.",
+      "timestamp": "2024-01-18T14:30:00Z",
+      "confidence": 0.85,
+      "recommendations": [
+        "Assess pain level and provide appropriate pain management",
+        "Check for signs of anxiety or distress",
+        "Review current medications for potential cardiac effects"
+      ]
+    },
+    {
+      "id": "ai-obs-002",
+      "type": "Trend Analysis",
+      "priority": "Low",
+      "message": "Temperature trend shows gradual normalization over the past 12 hours, indicating positive response to treatment.",
+      "timestamp": "2024-01-18T13:00:00Z",
+      "confidence": 0.92,
+      "recommendations": [
+        "Continue current fever management protocol",
+        "Monitor for signs of infection recurrence"
+      ]
+    },
+    {
+      "id": "ai-obs-003",
+      "type": "Drug Interaction",
+      "priority": "High",
+      "message": "Potential interaction detected between Metoprolol and current high-dose Morphine. Monitor for enhanced hypotensive effects.",
+      "timestamp": "2024-01-18T11:45:00Z",
+      "confidence": 0.78,
+      "recommendations": [
+        "Monitor blood pressure more frequently",
+        "Consider adjusting Morphine dosage if hypotension develops"
+      ]
+    }
+  ]
+}

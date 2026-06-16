@@ -1,0 +1,8 @@
+.env
+node_modules
+package-lock.json   
+dist/
+.idea
+bun.lockb
+coverage/
+yarn.lock

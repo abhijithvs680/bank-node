@@ -1,0 +1,31 @@
+{
+  "visits": [
+    {
+      "id": "visit-001",
+      "staff": "Dr. Sarah Wilson",
+      "role": "Attending Physician",
+      "time": "14:30",
+      "date": "2024-01-18",
+      "type": "Medical Round",
+      "notes": "Patient showing signs of improvement. Cardiac markers trending down. Continue current medication regimen. Monitor for arrhythmias."
+    },
+    {
+      "id": "visit-002",
+      "staff": "Nurse Jennifer Adams",
+      "role": "ICU Nurse",
+      "time": "12:00",
+      "date": "2024-01-18",
+      "type": "Vital Check",
+      "notes": "Vital signs stable. Patient responsive and alert. No complaints of chest pain at this time. Administered scheduled medications."
+    },
+    {
+      "id": "visit-003",
+      "staff": "Dr. Michael Chen",
+      "role": "Cardiologist",
+      "time": "09:15",
+      "date": "2024-01-18",
+      "type": "Consultation",
+      "notes": "Reviewed ECG and echo results. Recommend continuing current therapy. Will reassess in 24 hours for potential step-down to telemetry unit."
+    }
+  ]
+}

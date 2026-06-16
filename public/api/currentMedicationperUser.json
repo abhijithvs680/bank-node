@@ -1,0 +1,53 @@
+
+{
+  "ICU-2024-001": [
+    {
+      "medicationId": "med-001",
+      "name": "Metoprolol",
+      "dosage": "25mg",
+      "frequency": "Twice daily",
+      "route": "PO",
+      "startDate": "2024-01-15",
+      "prescribedBy": "Dr. Michael Chen",
+      "instructions": "Take with food",
+      "status": "active"
+    },
+    {
+      "medicationId": "med-002",
+      "name": "Aspirin",
+      "dosage": "81mg",
+      "frequency": "Once daily",
+      "route": "PO",
+      "startDate": "2024-01-15",
+      "prescribedBy": "Dr. Michael Chen",
+      "instructions": "Take in the morning",
+      "status": "active"
+    }
+  ],
+  "ICU-2024-003": [
+    {
+      "medicationId": "med-005",
+      "name": "Albuterol",
+      "dosage": "2.5mg",
+      "frequency": "Every 4 hours",
+      "route": "Nebulizer",
+      "startDate": "2024-01-14",
+      "prescribedBy": "Dr. Michael Chen",
+      "instructions": "For bronchodilation",
+      "status": "active"
+    }
+  ],
+  "ICU-2024-004": [
+    {
+      "medicationId": "med-006",
+      "name": "Ceftriaxone",
+      "dosage": "1g",
+      "frequency": "Once daily",
+      "route": "IV",
+      "startDate": "2024-01-17",
+      "prescribedBy": "Dr. Lisa Martinez",
+      "instructions": "Monitor for allergic reaction",
+      "status": "on-hold"
+    }
+  ]
+}

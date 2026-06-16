@@ -1,0 +1,575 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Medical ICU Design System */
+@layer base {
+  :root {
+    font-size: 14px;
+    --background: 240 10% 98%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 200 85% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 92%;
+    --secondary-foreground: 215 25% 25%;
+
+    --muted: 210 15% 95%;
+    --muted-foreground: 215 15% 45%;
+
+    --accent: 195 75% 92%;
+    --accent-foreground: 200 85% 25%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 249 32% 41%;
+
+    --radius: 8px;
+
+    /* Medical Theme Colors */
+    --medical-primary: 200 85% 45%;
+    /* Medical Blue */
+    --medical-secondary: 180 60% 50%;
+    /* Teal */
+    --medical-accent: 195 100% 92%;
+    /* Light Blue */
+    --medical-success: 145 70% 45%;
+    /* Medical Green */
+    --medical-warning: 40 95% 55%;
+    /* Amber */
+    --medical-danger: 0 84% 60%;
+    /* Red */
+    --medical-surface: 210 30% 98%;
+    /* Very Light Blue */
+    --medical-muted: 215 15% 85%;
+    /* Gray Blue */
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      font-size: 16px;
+    }
+  }
+
+  * {
+    @apply border-border;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1rem;
+  }
+
+  body {
+    @apply bg-background text-foreground font-medical antialiased;
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
+  }
+
+  /* Medical UI Components */
+  .medical-card {
+    @apply bg-card border border-medical-muted/30 rounded-lg shadow-sm hover:shadow-md transition-all duration-200;
+  }
+
+  .vital-indicator {
+    @apply inline-flex items-center justify-center w-3 h-3 rounded-full border-2 border-white shadow-sm;
+  }
+
+  .vital-normal {
+    @apply bg-medical-success;
+  }
+
+  .vital-warning {
+    @apply bg-medical-warning animate-pulse-soft;
+  }
+
+  .vital-danger {
+    @apply bg-medical-danger animate-vitals-pulse;
+  }
+
+  .medical-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+  }
+
+  .badge-normal {
+    @apply bg-medical-success/10 text-medical-success border-medical-success/20;
+  }
+
+  .badge-warning {
+    @apply bg-medical-warning/10 text-medical-warning border-medical-warning/20;
+  }
+
+  .badge-danger {
+    @apply bg-medical-danger/10 text-medical-danger border-medical-danger/20;
+  }
+
+  .badge-info {
+    @apply bg-medical-primary/10 text-medical-primary border-medical-primary/20;
+  }
+
+  .section-header {
+    @apply text-lg font-semibold text-foreground mb-2 pb-1 border-b border-medical-muted/40;
+  }
+
+  /* Custom scrollbar for medical interface */
+  .medical-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--medical-muted)) transparent;
+  }
+
+  .medical-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .medical-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .medical-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--medical-muted));
+    border-radius: 3px;
+  }
+
+  /* Always visible custom scrollbar for reorderable lists */
+  .custom-scrollbar-always {
+    scrollbar-width: thin;
+    scrollbar-color: #64549f33 transparent;
+  }
+
+  .custom-scrollbar-always::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .custom-scrollbar-always::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar-always::-webkit-scrollbar-thumb {
+    background-color: #64549f33;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .custom-scrollbar-always:hover::-webkit-scrollbar-thumb {
+    background-color: #64549f66;
+  }
+}
+
+@layer components {
+  .fade-in {
+    animation: slide-up 0.4s ease-out;
+  }
+
+  /* Dashboard Glassmorphism */
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+  }
+
+  .glass-topbar {
+    @apply bg-white/60 backdrop-blur-lg border-b border-white/10;
+  }
+
+  /* Card hover effects */
+  .dashboard-card {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .dashboard-card:hover:not(:disabled) {
+    @apply scale-[1.02] shadow-2xl;
+  }
+
+  .dashboard-card:active:not(:disabled) {
+    @apply scale-[0.98];
+  }
+}
+
+@layer utilities {
+
+  /* Floating icon animation */
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .icon-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes progress-bg {
+    0% {
+      background-position: 0 0;
+    }
+
+    100% {
+      background-position: 1rem 0;
+    }
+  }
+
+  @keyframes waveform-bounce {
+
+    0%,
+    100% {
+      transform: scaleY(0.4);
+    }
+
+    50% {
+      transform: scaleY(1.2);
+    }
+  }
+
+  @keyframes badge-pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
+    }
+
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 8px rgba(249, 115, 22, 0);
+    }
+
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+    }
+  }
+
+  /* Gradient shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .shimmer-effect {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes glow-border {
+
+    0%,
+    100% {
+      box-shadow: 0 0 5px rgba(100, 84, 159, 0.5), 0 0 10px rgba(100, 84, 159, 0.3);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    50% {
+      box-shadow: 0 0 15px rgba(145, 129, 219, 0.6), 0 0 25px rgba(145, 129, 219, 0.4);
+      border-color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  .animate-glow-border {
+    animation: glow-border 2s ease-in-out infinite;
+  }
+
+  /* Touch-friendly utilities */
+  .touch-item {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  @media (hover: hover) {
+    .touch-item:hover {
+      background-color: hsl(var(--medical-muted) / 0.1);
+    }
+  }
+}
+
+/* AI Observation HTML Content Styles */
+.ai-observation-content {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.ai-observation-content .patient-alert {
+  background: linear-gradient(135deg, hsl(var(--medical-danger) / 0.1), hsl(var(--medical-danger) / 0.05));
+  border: 1px solid hsl(var(--medical-danger) / 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-observation-content .alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-observation-content .alert-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: hsl(var(--medical-danger));
+}
+
+.ai-observation-content .alert-content {
+  padding-left: 0.5rem;
+}
+
+.ai-observation-content .alert-message {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--foreground));
+}
+
+.ai-observation-content .alert-recommendation {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+  padding-top: 0.5rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* Dark mode adjustments for AI observation content */
+.dark .ai-observation-content .patient-alert {
+  background: linear-gradient(135deg, hsl(var(--medical-danger) / 0.15), hsl(var(--medical-danger) / 0.08));
+  border-color: hsl(var(--medical-danger) / 0.3);
+}
+
+/* Locked Card Styles */
+.locked-card {
+  @apply relative opacity-60;
+}
+
+.locked-card:hover .lock-overlay {
+  @apply opacity-100;
+}
+
+.lock-overlay {
+  @apply absolute inset-0 bg-black/50 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center opacity-0 transition-opacity duration-300 z-20;
+}
+
+@keyframes lock-shake {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-5deg);
+  }
+
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+.lock-icon-animated {
+  animation: lock-shake 0.5s ease-in-out;
+}
+
+.locked-card:hover .lock-icon-animated {
+  animation: lock-shake 0.5s ease-in-out infinite;
+}
+
+/* AI Interpretations Content Styles */
+.ai-interpretation-content {
+  font-family: inherit;
+}
+
+.ai-interpretation-content .container {
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.ai-interpretation-content .report-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Hide standalone h2 elements outside cards */
+.ai-interpretation-content>.container>h2 {
+  display: none !important;
+}
+
+/* Style each card section with colored left border and gradient background */
+.ai-interpretation-content .card {
+  position: relative;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  padding: 1rem 1.25rem !important;
+  margin-bottom: 1rem !important;
+  border-left: 4px solid !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Card heading styling */
+.ai-interpretation-content .card h2 {
+  display: block !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  margin-bottom: 0.75rem !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Case Summary - Purple/Lavender */
+.ai-interpretation-content #case-summary {
+  background: linear-gradient(135deg, #f3e8ff 0%, #f9f4ff 500%) !important;
+  border-left-color: #a855f7 !important;
+}
+
+/* Report Types - Cyan */
+.ai-interpretation-content #report-types {
+  background: linear-gradient(135deg, #e0f7fa 0%, #ddf1f4 100%) !important;
+  border-left-color: #06b6d4 !important;
+}
+
+/* Detailed Interpretation - Light Blue/Lavender */
+.ai-interpretation-content #detailed-interpretation {
+  background: linear-gradient(135deg, #ede9fe 0%, #e3def8 100%) !important;
+  border-left-color: #8b5cf6 !important;
+}
+
+/* Correlation - Cyan/Teal */
+.ai-interpretation-content #correlation {
+  background: linear-gradient(135deg, #e0f2f1 0%, #cdebe9 100%) !important;
+  border-left-color: #14b8a6 !important;
+}
+
+/* Clinical Impression - Light Teal/Green */
+.ai-interpretation-content #clinical-impression {
+  background: linear-gradient(135deg, #d1fae5 0%, #cae9db 100%) !important;
+  border-left-color: #10b981 !important;
+}
+
+/* Risk Assessment - Pink/Rose */
+.ai-interpretation-content #risk-assessment {
+  background: linear-gradient(135deg, #fee2e2 0%, #edd5d5 100%) !important;
+  border-left-color: #ef4444 !important;
+}
+
+/* Recommended Specialty - Yellow/Amber */
+.ai-interpretation-content #recommended-specialty {
+  background: linear-gradient(135deg, #fef3c7 0%, #f0ead2 100%) !important;
+  border-left-color: #f59e0b !important;
+}
+
+/* Investigations - Light Yellow */
+.ai-interpretation-content #investigations {
+  background: linear-gradient(135deg, #fef9c3 0%, #e6e3ce 100%) !important;
+  border-left-color: #eab308 !important;
+}
+
+/* Doctor Actions - Light Green/Lime */
+.ai-interpretation-content #doctor-actions {
+  background: linear-gradient(135deg, #dcfce7 0%, #dbf3e4 100%) !important;
+  border-left-color: #22c55e !important;
+}
+
+/* Missing Info - Light Gray/Neutral */
+.ai-interpretation-content #missing-info {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  border-left-color: #6b7280 !important;
+}
+
+/* Final Summary - Mint Green */
+.ai-interpretation-content #final-summary {
+  background: linear-gradient(135deg, #d1fae5 0%, #d8feec 100%) !important;
+  border-left-color: #059669 !important;
+}
+
+.ai-interpretation-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0 !important;
+}
+
+.ai-interpretation-content li {
+  margin-bottom: 0.35rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.ai-interpretation-content p {
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0;
+}
+
+.ai-interpretation-content strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Dark mode adjustments for AI interpretations */
+.dark .ai-interpretation-content #case-summary {
+  background: linear-gradient(135deg, hsl(280 40% 20%) 0%, hsl(280 40% 15%) 100%);
+}
+
+.dark .ai-interpretation-content #report-types {
+  background: linear-gradient(135deg, hsl(185 40% 18%) 0%, hsl(185 40% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #detailed-interpretation {
+  background: linear-gradient(135deg, hsl(240 40% 18%) 0%, hsl(240 40% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #correlation {
+  background: linear-gradient(135deg, hsl(175 35% 18%) 0%, hsl(175 35% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #clinical-impression {
+  background: linear-gradient(135deg, hsl(165 35% 18%) 0%, hsl(165 35% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #risk-assessment {
+  background: linear-gradient(135deg, hsl(350 40% 18%) 0%, hsl(350 40% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #recommended-specialty {
+  background: linear-gradient(135deg, hsl(45 40% 18%) 0%, hsl(45 40% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #investigations {
+  background: linear-gradient(135deg, hsl(55 40% 18%) 0%, hsl(55 40% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #doctor-actions {
+  background: linear-gradient(135deg, hsl(80 35% 18%) 0%, hsl(80 35% 12%) 100%);
+}
+
+.dark .ai-interpretation-content #missing-info {
+  background: linear-gradient(135deg, hsl(0 0% 20%) 0%, hsl(0 0% 15%) 100%);
+}
+
+.dark .ai-interpretation-content #final-summary {
+  background: linear-gradient(135deg, hsl(150 35% 18%) 0%, hsl(150 35% 12%) 100%);
+}
+
+.font-\[\'Inter\'\] {
+  font-family: 'Inter', system-ui, sans-serif !important;
+}

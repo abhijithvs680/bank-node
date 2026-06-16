@@ -1,0 +1,623 @@
+{
+  "patients": [
+    {
+      "admissionId": "ICU2024001",
+      "firstName": "John",
+      "lastName": "Smith",
+      "dateOfBirth": "1957-03-15",
+      "age": 67,
+      "gender": "M",
+      "bedNumber": "ICU-A3",
+      "ward": "ICU",
+      "admissionDate": "2024-01-15T08:30:00Z",
+      "admissionReason": "Chest pain with ST-elevation myocardial infarction",
+      "primaryDiagnosis": "Acute ST-elevation myocardial infarction",
+      "secondaryDiagnoses": "Hypertension, Type 2 Diabetes Mellitus, Atrial Fibrillation",
+      "allergies": ["Penicillin", "Shellfish"],
+      "currentMedications": [
+        {
+          "medicationId": "med-001",
+          "name": "Metoprolol",
+          "dosage": "25mg",
+          "frequency": "Twice daily",
+          "route": "PO",
+          "startDate": "2024-01-15",
+          "prescribedBy": "Dr. Michael Chen",
+          "instructions": "Take with food",
+          "healthStatus": "active",
+          "lastGiven": "2024-01-18T08:00:00Z",
+          "lastGivenBy": "Nurse Jennifer Adams"
+
+        },
+        {
+          "medicationId": "med-002",
+          "name": "Aspirin",
+          "dosage": "81mg",
+          "frequency": "Once daily",
+          "route": "PO",
+          "startDate": "2024-01-15",
+          "prescribedBy": "Dr. Michael Chen",
+          "instructions": "Take in the morning",
+          "healthStatus": "active"
+        },
+        {
+          "medicationId": "med-003",
+          "name": "Morphine",
+          "dosage": "2mg",
+          "frequency": "PRN",
+          "route": "IV",
+          "startDate": "2024-01-15",
+          "prescribedBy": "Dr. Sarah Wilson",
+          "instructions": "For severe pain",
+          "healthStatus": "active"
+        },
+        {
+          "medicationId": "med-004",
+          "name": "Furosemide",
+          "dosage": "40mg",
+          "frequency": "Twice daily",
+          "route": "IV",
+          "startDate": "2024-01-15",
+          "prescribedBy": "Dr. Sarah Wilson",
+          "instructions": "Monitor fluid balance",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Sarah Wilson",
+      "insuranceInfo": {
+        "provider": "Medicare",
+        "policyNumber": "MED-123456789"
+      },
+      "vitalSigns": {
+        "admissionId": "ICU-2024-001",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 92,
+        "bloodPressureSystolic": 120,
+        "bloodPressureDiastolic": 80,
+        "respiratoryRate": 18,
+        "temperature": 38.2,
+        "oxygenSaturation": 96,
+        "painLevel": 6,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "bloodGlucose": 145,
+        "centralVenousPressure": 8,
+        "urineOutput": 45,
+        "weight": 78.5,
+        "height": 175,
+        "bmi": 25.6
+      },
+      "labResults": [
+        {
+          "testId": "lab-001",
+          "testName": "Troponin I",
+          "value": "0.8",
+          "unit": "ng/mL",
+          "normalRange": "< 0.04",
+          "healthStatus": "critical",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Sarah Wilson"
+        },
+        {
+          "testId": "lab-002",
+          "testName": "White Blood Cells",
+          "value": "12.5",
+          "unit": "K/μL",
+          "normalRange": "4.0-11.0",
+          "healthStatus": "high",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Sarah Wilson"
+        },
+        {
+          "testId": "lab-003",
+          "testName": "Hemoglobin",
+          "value": "13.2",
+          "unit": "g/dL",
+          "normalRange": "12.0-16.0",
+          "healthStatus": "normal",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Sarah Wilson"
+        },
+        {
+          "testId": "lab-004",
+          "testName": "Creatinine",
+          "value": "1.1",
+          "unit": "mg/dL",
+          "normalRange": "0.7-1.3",
+          "healthStatus": "normal",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Sarah Wilson"
+        }
+      ],
+      "healthStatus": "critical",
+      "alerts": [
+        {
+          "alertId": "alert-001",
+          "type": "vital",
+          "severity": "medium",
+          "message": "Elevated heart rate (>90 BPM)",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        },
+        {
+          "alertId": "alert-002",
+          "type": "vital",
+          "severity": "medium",
+          "message": "Fever detected (>38°C)",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        }
+      ],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "ICU2024003",
+      "firstName": "Robert",
+      "lastName": "Johnson",
+      "dateOfBirth": "1952-07-22",
+      "age": 72,
+      "gender": "M",
+      "bedNumber": "ICU-A1",
+      "ward": "ICU",
+      "admissionDate": "2024-01-14T10:15:00Z",
+      "admissionReason": "Acute respiratory failure secondary to pneumonia",
+      "primaryDiagnosis": "Acute respiratory failure with pneumonia",
+      "secondaryDiagnoses": "COPD exacerbation, Congestive heart failure",
+      "allergies": ["Codeine"],
+      "currentMedications": [
+        {
+          "medicationId": "med-005",
+          "name": "Albuterol",
+          "dosage": "2.5mg",
+          "frequency": "Every 4 hours",
+          "route": "Nebulizer",
+          "startDate": "2024-01-14",
+          "prescribedBy": "Dr. Michael Chen",
+          "instructions": "For bronchodilation",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Michael Chen",
+      "insuranceInfo": {
+        "provider": "Blue Cross Blue Shield",
+        "policyNumber": "BCBS-987654321"
+      },
+      "vitalSigns": {
+        "admissionId": "ICU-2024-003",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 85,
+        "bloodPressureSystolic": 125,
+        "bloodPressureDiastolic": 82,
+        "respiratoryRate": 22,
+        "temperature": 37.8,
+        "oxygenSaturation": 93,
+        "painLevel": 3,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "bloodGlucose": 110,
+        "urineOutput": 60,
+        "weight": 82.3,
+        "height": 180,
+        "bmi": 25.4
+      },
+      "labResults": [],
+      "healthStatus": "improving",
+      "alerts": [],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "WARD2024002",
+      "firstName": "Maria",
+      "lastName": "Rodriguez",
+      "dateOfBirth": "1970-11-08",
+      "age": 54,
+      "gender": "F",
+      "bedNumber": "Room 302",
+      "ward": "Medical Ward",
+      "admissionDate": "2024-01-16T16:20:00Z",
+      "admissionReason": "Post-operative monitoring following laparoscopic cholecystectomy",
+      "primaryDiagnosis": "Post-operative recovery, laparoscopic cholecystectomy",
+      "secondaryDiagnoses": "Cholelithiasis",
+      "allergies": [],
+      "currentMedications": [],
+      "assignedPhysician": "Dr. Lisa Martinez",
+      "insuranceInfo": {
+        "provider": "Aetna",
+        "policyNumber": "AET-456789123"
+      },
+      "vitalSigns": {
+        "admissionId": "WARD-2024-002",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 78,
+        "bloodPressureSystolic": 118,
+        "bloodPressureDiastolic": 75,
+        "respiratoryRate": 16,
+        "temperature": 36.8,
+        "oxygenSaturation": 98,
+        "painLevel": 2,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "weight": 65.2,
+        "height": 162,
+        "bmi": 24.8
+      },
+      "labResults": [],
+      "healthStatus": "stable",
+      "alerts": [],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "ICU2024004",
+      "firstName": "Emily",
+      "lastName": "Davis",
+      "dateOfBirth": "1985-05-10",
+      "age": 39,
+      "gender": "F",
+      "bedNumber": "ICU-B2",
+      "ward": "ICU",
+      "admissionDate": "2024-01-17T09:00:00Z",
+      "admissionReason": "Sepsis secondary to urinary tract infection",
+      "primaryDiagnosis": "Sepsis",
+      "secondaryDiagnoses": "Urinary tract infection, Anemia",
+      "allergies": ["Sulfa drugs"],
+      "currentMedications": [
+        {
+          "medicationId": "med-006",
+          "name": "Ceftriaxone",
+          "dosage": "1g",
+          "frequency": "Once daily",
+          "route": "IV",
+          "startDate": "2024-01-17",
+          "prescribedBy": "Dr. Lisa Martinez",
+          "instructions": "Monitor for allergic reaction",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Lisa Martinez",
+      "insuranceInfo": {
+        "provider": "UnitedHealthcare",
+        "policyNumber": "UHC-654321987"
+      },
+      "vitalSigns": {
+        "admissionId": "ICU-2024-004",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 105,
+        "bloodPressureSystolic": 110,
+        "bloodPressureDiastolic": 70,
+        "respiratoryRate": 20,
+        "temperature": 39.1,
+        "oxygenSaturation": 94,
+        "painLevel": 5,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "bloodGlucose": 120,
+        "urineOutput": 30,
+        "weight": 68.0,
+        "height": 168,
+        "bmi": 24.1
+      },
+      "labResults": [
+        {
+          "testId": "lab-005",
+          "testName": "WBC",
+          "value": "15.2",
+          "unit": "K/μL",
+          "normalRange": "4.0-11.0",
+          "healthStatus": "high",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Lisa Martinez"
+        }
+      ],
+      "healthStatus": "critical",
+      "alerts": [
+        {
+          "alertId": "alert-003",
+          "type": "vital",
+          "severity": "high",
+          "message": "Fever detected (>39°C)",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        }
+      ],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "WARD2024-005",
+      "firstName": "David",
+      "lastName": "Lee",
+      "dateOfBirth": "1968-09-30",
+      "age": 56,
+      "gender": "M",
+      "bedNumber": "Room 305",
+      "ward": "Medical Ward",
+      "admissionDate": "2024-01-17T13:45:00Z",
+      "admissionReason": "Uncontrolled hypertension",
+      "primaryDiagnosis": "Hypertensive crisis",
+      "secondaryDiagnoses": "Type 2 Diabetes Mellitus",
+      "allergies": [],
+      "currentMedications": [
+        {
+          "medicationId": "med-007",
+          "name": "Lisinopril",
+          "dosage": "20mg",
+          "frequency": "Once daily",
+          "route": "PO",
+          "startDate": "2024-01-17",
+          "prescribedBy": "Dr. Michael Chen",
+          "instructions": "Monitor blood pressure",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Michael Chen",
+      "insuranceInfo": {
+        "provider": "Cigna",
+        "policyNumber": "CIG-789456123"
+      },
+      "vitalSigns": {
+        "admissionId": "WARD-2024-005",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 88,
+        "bloodPressureSystolic": 160,
+        "bloodPressureDiastolic": 98,
+        "respiratoryRate": 18,
+        "temperature": 37.0,
+        "oxygenSaturation": 97,
+        "painLevel": 2,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "bloodGlucose": 150,
+        "weight": 90.5,
+        "height": 175,
+        "bmi": 29.6
+      },
+      "labResults": [
+        {
+          "testId": "lab-006",
+          "testName": "Blood Glucose",
+          "value": "150",
+          "unit": "mg/dL",
+          "normalRange": "70-110",
+          "healthStatus": "high",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Michael Chen"
+        }
+      ],
+      "healthStatus": "stable",
+      "alerts": [
+        {
+          "alertId": "alert-004",
+          "type": "vital",
+          "severity": "high",
+          "message": "Hypertensive crisis detected",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        }
+      ],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "ICU-2024-006",
+      "firstName": "Olivia",
+      "lastName": "Nguyen",
+      "dateOfBirth": "1992-02-18",
+      "age": 33,
+      "gender": "F",
+      "bedNumber": "ICU-B4",
+      "ward": "ICU",
+      "admissionDate": "2024-01-18T07:30:00Z",
+      "admissionReason": "Acute pancreatitis",
+      "primaryDiagnosis": "Acute pancreatitis",
+      "secondaryDiagnoses": "Hyperlipidemia",
+      "allergies": ["Latex"],
+      "currentMedications": [
+        {
+          "medicationId": "med-008",
+          "name": "Pantoprazole",
+          "dosage": "40mg",
+          "frequency": "Once daily",
+          "route": "IV",
+          "startDate": "2024-01-18",
+          "prescribedBy": "Dr. Sarah Wilson",
+          "instructions": "Monitor for GI bleeding",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Sarah Wilson",
+      "insuranceInfo": {
+        "provider": "Kaiser Permanente",
+        "policyNumber": "KP-321654987"
+      },
+      "vitalSigns": {
+        "admissionId": "ICU-2024-006",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 98,
+        "bloodPressureSystolic": 115,
+        "bloodPressureDiastolic": 78,
+        "respiratoryRate": 19,
+        "temperature": 37.5,
+        "oxygenSaturation": 95,
+        "painLevel": 7,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "weight": 60.0,
+        "height": 160,
+        "bmi": 23.4
+      },
+      "labResults": [
+        {
+          "testId": "lab-007",
+          "testName": "Lipase",
+          "value": "600",
+          "unit": "U/L",
+          "normalRange": "10-140",
+          "healthStatus": "high",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Sarah Wilson"
+        }
+      ],
+      "healthStatus": "critical",
+      "alerts": [
+        {
+          "alertId": "alert-005",
+          "type": "vital",
+          "severity": "high",
+          "message": "Severe abdominal pain reported",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        }
+      ],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "WARD-2024-007",
+      "firstName": "Sophia",
+      "lastName": "Kim",
+      "dateOfBirth": "2000-12-05",
+      "age": 24,
+      "gender": "F",
+      "bedNumber": "Room 308",
+      "ward": "Medical Ward",
+      "admissionDate": "2024-01-18T11:00:00Z",
+      "admissionReason": "Migraine with aura",
+      "primaryDiagnosis": "Migraine",
+      "secondaryDiagnoses": "",
+      "allergies": ["NSAIDs"],
+      "currentMedications": [
+        {
+          "medicationId": "med-009",
+          "name": "Sumatriptan",
+          "dosage": "50mg",
+          "frequency": "PRN",
+          "route": "PO",
+          "startDate": "2024-01-18",
+          "prescribedBy": "Dr. Lisa Martinez",
+          "instructions": "Take at onset of migraine",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Lisa Martinez",
+      "insuranceInfo": {
+        "provider": "Aetna",
+        "policyNumber": "AET-654987321"
+      },
+      "vitalSigns": {
+        "admissionId": "WARD-2024-007",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 72,
+        "bloodPressureSystolic": 110,
+        "bloodPressureDiastolic": 70,
+        "respiratoryRate": 15,
+        "temperature": 36.7,
+        "oxygenSaturation": 99,
+        "painLevel": 8,
+        "consciousnessLevel": "Alert",
+        "glasgowComaScale": {
+          "total": 15
+        },
+        "weight": 55.0,
+        "height": 158,
+        "bmi": 22.0
+      },
+      "labResults": [],
+      "healthStatus": "stable",
+      "alerts": [
+        {
+          "alertId": "alert-006",
+          "type": "vital",
+          "severity": "medium",
+          "message": "Severe headache reported",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        }
+      ],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    },
+    {
+      "admissionId": "ICU-2024-008",
+      "firstName": "Michael",
+      "lastName": "Brown",
+      "dateOfBirth": "1945-04-22",
+      "age": 80,
+      "gender": "M",
+      "bedNumber": "ICU-C1",
+      "ward": "ICU",
+      "admissionDate": "2024-01-18T06:45:00Z",
+      "admissionReason": "Stroke (ischemic)",
+      "primaryDiagnosis": "Acute ischemic stroke",
+      "secondaryDiagnoses": "Atrial fibrillation, Hypertension",
+      "allergies": [],
+      "currentMedications": [
+        {
+          "medicationId": "med-010",
+          "name": "Clopidogrel",
+          "dosage": "75mg",
+          "frequency": "Once daily",
+          "route": "PO",
+          "startDate": "2024-01-18",
+          "prescribedBy": "Dr. Sarah Wilson",
+          "instructions": "Monitor for bleeding",
+          "healthStatus": "active"
+        }
+      ],
+      "assignedPhysician": "Dr. Sarah Wilson",
+      "insuranceInfo": {
+        "provider": "Medicare",
+        "policyNumber": "MED-654321789"
+      },
+      "vitalSigns": {
+        "admissionId": "ICU-2024-008",
+        "timestamp": "2024-01-18T14:00:00Z",
+        "heartRate": 80,
+        "bloodPressureSystolic": 140,
+        "bloodPressureDiastolic": 85,
+        "respiratoryRate": 16,
+        "temperature": 36.9,
+        "oxygenSaturation": 97,
+        "painLevel": 1,
+        "consciousnessLevel": "Drowsy",
+        "glasgowComaScale": {
+          "total": 12
+        },
+        "weight": 76.0,
+        "height": 170,
+        "bmi": 26.3
+      },
+      "labResults": [
+        {
+          "testId": "lab-008",
+          "testName": "INR",
+          "value": "1.2",
+          "unit": "",
+          "normalRange": "0.8-1.2",
+          "healthStatus": "normal",
+          "timestamp": "2024-01-18T12:00:00Z",
+          "orderedBy": "Dr. Sarah Wilson"
+        }
+      ],
+      "healthStatus": "critical",
+      "alerts": [
+        {
+          "alertId": "alert-007",
+          "type": "vital",
+          "severity": "high",
+          "message": "Altered consciousness detected",
+          "timestamp": "2024-01-18T14:00:00Z",
+          "acknowledged": false
+        }
+      ],
+      "lastUpdated": "2024-01-18T14:00:00Z"
+    }
+  ]
+}

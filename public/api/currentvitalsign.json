@@ -1,0 +1,47 @@
+
+{
+  "ICU-2024-001": {
+    "admissionId": "ICU-2024-001",
+    "timestamp": "2024-01-18T12:30:00Z",
+    "heartRate": 88,
+    "bloodPressureSystolic": 130,
+    "bloodPressureDiastolic": 82,
+    "respiratoryRate": 18,
+    "temperature": 37.2,
+    "oxygenSaturation": 97,
+    "painLevel": 3,
+    "consciousnessLevel": "Alert",
+    "glasgowComaScale":  15,
+    "bloodGlucose": 110
+  },
+  "ICU-2024-003": {
+    "admissionId": "ICU-2024-003",
+    "timestamp": "2024-01-18T10:35:00Z",
+    "heartRate": 76,
+    "bloodPressureSystolic": 118,
+    "bloodPressureDiastolic": 76,
+    "respiratoryRate": 16,
+    "temperature": 36.8,
+    "oxygenSaturation": 98,
+    "painLevel": 1,
+    "consciousnessLevel": "Alert",
+    "glasgowComaScale": {
+      "total": 15
+    }
+  },
+  "ICU-2024-004": {
+    "admissionId": "ICU-2024-004",
+    "timestamp": "2024-01-18T10:40:00Z",
+    "heartRate": 95,
+    "bloodPressureSystolic": 142,
+    "bloodPressureDiastolic": 90,
+    "respiratoryRate": 22,
+    "temperature": 37.9,
+    "oxygenSaturation": 94,
+    "painLevel": 5,
+    "consciousnessLevel": "Voice",
+    "glasgowComaScale": {
+      "total": 12
+    }
+  }
+}
