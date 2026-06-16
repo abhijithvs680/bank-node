@@ -410,7 +410,7 @@ export const PatientOverview = ({
           </div>
         );
       case 'borrower': return (
-        <span 
+        <span
           className="text-[0.94rem] font-semibold text-blue-600 hover:underline cursor-pointer font-['Inter']"
           onClick={() => navigate(`/borrower/${patient.consultationId}`)}
         >
@@ -489,7 +489,7 @@ export const PatientOverview = ({
               </div>
               <div>
                 <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Deal Id</div>
-                <div className="text-[15px] font-semibold text-blue-600 hover:underline cursor-pointer mt-0.5">
+                <div className="text-[15px] font-semibold text-black-600 mt-0.5">
                   {patient.dealId || `#AG${patient.consultationId}`}
                 </div>
               </div>

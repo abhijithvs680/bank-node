@@ -345,8 +345,8 @@ export const RecentResults = ({
 
       <div className="flex items-center justify-between px-1">
         <div>
-          <h3 className="text-[1.125rem] font-semibold text-[#1a2256]">Lab Results &amp; Imaging</h3>
-          <p className="text-[0.81rem] text-[#6e6868] font-medium">Reports and AI summaries</p>
+          <h3 className="text-[1.125rem] font-semibold text-[#1a2256]">Documents</h3>
+          {/* <p className="text-[0.81rem] text-[#6e6868] font-medium">Reports and AI summaries</p> */}
         </div>
         <Button
           onClick={() => fileInputRef.current?.click()}
@@ -355,7 +355,7 @@ export const RecentResults = ({
           size="sm"
         >
           <Upload className="w-4 h-4" />
-          Upload Report
+          Upload Document
         </Button>
       </div>
 

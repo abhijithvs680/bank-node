@@ -33,7 +33,7 @@ import { AdditionalInfoCards } from "@/components/AdditionalInfoCards";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { DoctorAssistantWidget } from "@/components/DoctorAssistantWidget";
 import { useGeminiDoctorAssistant } from "@/hooks/useGeminiDoctorAssistant";
-import { Lock, Printer, Smartphone, CheckCircle, BrainCircuit } from 'lucide-react';
+import { Lock, Printer, Smartphone, CheckCircle, BrainCircuit, MessageSquareText, Send, X as XIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowLeft, History, FileText, Heart, TestTube, Calendar, Upload, Pill, Loader2, FileDown, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -112,6 +112,51 @@ const PatientDetailsPage = () => {
   const [showAIInterpretationsModal, setShowAIInterpretationsModal] = useState(false);
   const [medicineOverlayOpen, setMedicineOverlayOpen] = useState(false);
   const [serviceOverlayOpen, setServiceOverlayOpen] = useState(false);
+
+  // ── Query Deals chat state ─────────────────────────────────────────────────
+  interface ChatMsg { role: 'user' | 'assistant'; text: string; }
+  const [isQueryChatOpen, setIsQueryChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([
+    { role: 'assistant', text: 'Hi! Ask me anything about the deals terms, covenants, borrowers, or any clause.' },
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const queryBtnRef = useRef<HTMLDivElement>(null);
+  const [chatPanelPos, setChatPanelPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+
+  // Measure button position when panel opens so we can use fixed positioning
+  // (escapes the header's overflow-hidden)
+  useEffect(() => {
+    if (isQueryChatOpen && queryBtnRef.current) {
+      const rect = queryBtnRef.current.getBoundingClientRect();
+      setChatPanelPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [isQueryChatOpen]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const sendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || chatLoading) return;
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', text }]);
+    setChatLoading(true);
+    await new Promise(res => setTimeout(res, 1200));
+    setChatMessages(prev => [
+      ...prev,
+      {
+        role: 'assistant',
+        text: `I've reviewed the deal documents. Regarding "${text}" — based on the uploaded agreements, the relevant clause is under Section 4.2. Specific terms may vary per facility. Please refer to the checklist items for detailed covenant tracking.`,
+      },
+    ]);
+    setChatLoading(false);
+  };
   // Effect to automatically pause/resume AI voice agent based on active forms or overlays
   // Note: showAddVitals is excluded - voice should remain active for vitals form
   useEffect(() => {
@@ -1512,6 +1557,106 @@ const PatientDetailsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {/* Query Deals button + dropdown chat panel */}
+            <div className="relative" ref={queryBtnRef}>
+              <button
+                id="query-deals-btn"
+                onClick={() => setIsQueryChatOpen(prev => !prev)}
+                className="flex items-center gap-2 bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] hover:from-[#0284c7] hover:to-[#0ea5e9] text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(14,165,233,0.35)] hover:shadow-[0_6px_22px_rgba(14,165,233,0.5)] transition-all duration-200 active:scale-95"
+              >
+                <MessageSquareText className="w-4 h-4" />
+                <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Query Deals</span>
+              </button>
+
+              {/* ── Slide-down chat panel (fixed to escape header overflow-hidden) ── */}
+              <style>{`
+                @keyframes qd-slide {
+                  from { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
+                  to   { opacity: 1; transform: translateY(0)   scaleY(1); }
+                }
+                .qd-panel {
+                  transform-origin: top right;
+                  animation: qd-slide 0.22s cubic-bezier(0.16,1,0.3,1);
+                }
+              `}</style>
+
+               {isQueryChatOpen && (
+                <div
+                  className="qd-panel fixed top-[92px] right-6 md:right-12 lg:right-16 z-[9999] w-[520px] rounded-[18px] border border-sky-200/60 bg-white shadow-[0_20px_60px_rgba(14,165,233,0.18),0_4px_20px_rgba(0,0,0,0.12)] overflow-hidden"
+                >
+
+                  {/* Header */}
+                  <div className="flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8]">
+                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                      <MessageSquareText className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[0.94rem] font-bold text-white">Query Deals</p>
+                    </div>
+                    <button
+                      onClick={() => setIsQueryChatOpen(false)}
+                      className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
+                    >
+                      <XIcon className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="h-[560px] overflow-y-auto px-5 py-4 space-y-3 bg-[#f8fbff]">
+                    {chatMessages.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {msg.role === 'assistant' && (
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center mr-2 flex-shrink-0 mt-0.5 shadow-sm">
+                            <MessageSquareText className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
+                        <div
+                          className={`max-w-[78%] px-4 py-2.5 rounded-[16px] text-[0.84rem] leading-relaxed ${msg.role === 'user'
+                            ? 'bg-gradient-to-br from-[#0284c7] to-[#38bdf8] text-white rounded-br-[4px] shadow-sm'
+                            : 'bg-white border border-[#dde9f8] text-[#1a2256] rounded-bl-[4px] shadow-sm'
+                            }`}
+                        >
+                          {msg.text}
+                        </div>
+                      </div>
+                    ))}
+                    {chatLoading && (
+                      <div className="flex justify-start items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center shadow-sm">
+                          <MessageSquareText className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div className="bg-white border border-[#dde9f8] rounded-[16px] rounded-bl-[4px] px-4 py-2.5 shadow-sm flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Input */}
+                  <div className="px-5 py-3.5 border-t border-sky-100 bg-white flex items-center gap-2.5">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                      placeholder="Ask about a deal, clause, covenant…"
+                      className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15 transition-all placeholder:text-[#a0b8cc]"
+                    />
+                    <button
+                      onClick={sendChatMessage}
+                      disabled={!chatInput.trim() || chatLoading}
+                      className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <VoiceRecorder
               admissionId={consultationId || ''}
               patientData={{
@@ -1556,7 +1701,7 @@ const PatientDetailsPage = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+
       <main className="py-3 px-6 md:px-12 lg:px-16 transition-all duration-300">
         <div className="flex gap-4">
           {/* Left Column (Main Clinical View) */}
