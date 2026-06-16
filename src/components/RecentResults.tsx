@@ -1,12 +1,12 @@
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Loader2, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { FileText, Upload, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot } from 'lucide-react';
 import { LabResult } from '@/types/patient';
 import { PDFSidebar } from './PDFSidebar';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { RelativeTime } from '@/components/RelativeTime';
 import { Touchable } from '@/components/ui/touchable';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
 
 interface RecentResultsProps {
   onAddLabResult?: () => void;
@@ -22,6 +22,7 @@ interface RecentResultsProps {
   setPatientName?: React.Dispatch<React.SetStateAction<string>>;
   onRefreshLabResults?: () => Promise<void>;
   onViewReport?: (index: number) => void;
+  onAskAI?: (fileId: string, fileName: string) => void;
 }
 
 interface BoundingBox {
@@ -91,9 +92,10 @@ const CHECKLIST_ITEMS = [
 interface LabResultCardProps {
   result: LabResult;
   handleViewReport: (id: string) => void;
+  onAskAI?: (fileId: string, fileName: string) => void;
 }
 
-const LabResultCard = ({ result, handleViewReport }: LabResultCardProps) => {
+const LabResultCard = ({ result, handleViewReport, onAskAI }: LabResultCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -157,11 +159,24 @@ const LabResultCard = ({ result, handleViewReport }: LabResultCardProps) => {
 
         {/* View Badge (Only if file exists) */}
         {result.FileFullPath && (
-          <div className="mt-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
+          <div className="mt-3 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
             <span className="text-[12px] font-bold text-[#64549f] flex items-center gap-1">
               View full report
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
             </span>
+            {onAskAI && result.Id && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const fileName = result.FileName || result.TestName || 'Lab Report';
+                  onAskAI(result.Id, fileName);
+                }}
+                className="flex items-center gap-1 text-[12px] font-bold text-[#1a2256] bg-[#f5f7fc] px-2 py-1 rounded hover:bg-[#e0e3f5] transition-colors"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                Ask AI
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -175,16 +190,25 @@ interface UploadedFileRowProps {
   isOpen: boolean;
   onToggle: () => void;
   onClauseClick?: (fileId: string | undefined, pageNumber: number, boundingBoxes?: BoundingBox[]) => void;
+  onAskAI?: (fileId: string, fileName: string) => void;
 }
 
-const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFileRowProps) => {
+const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: UploadedFileRowProps) => {
   const isProcessing = file.isUploading;
   const hasError = !!file.error;
   const results = file.checklistResults || [];
   
-  const achievedClauses = new Set(results.map(r => r.clause.toLowerCase().trim()));
-  const unachievedItems = CHECKLIST_ITEMS.filter(item => !achievedClauses.has(item.toLowerCase().trim()));
+  const foundItems = results.filter(r => r.achieved === true);
+  let missingItems = results.filter(r => r.achieved === false);
   
+  // Fallback: if backend didn't return any missing items explicitly, calculate from CHECKLIST_ITEMS
+  if (foundItems.length > 0 && missingItems.length === 0) {
+    const achievedClauses = new Set(foundItems.map(r => r.clause.toLowerCase().trim()));
+    missingItems = CHECKLIST_ITEMS.filter(item => !achievedClauses.has(item.toLowerCase().trim()))
+      .map(item => ({ clause: item, achieved: false, page_numbers: [], exact_quotes: [] }));
+  } else if (results.length === 0) {
+    missingItems = CHECKLIST_ITEMS.map(item => ({ clause: item, achieved: false, page_numbers: [], exact_quotes: [] }));
+  }
   return (
     <div className="rounded-[16px] border border-[#e0e3f5] bg-white overflow-hidden shadow-sm transition-all duration-200">
       {/* Row header */}
@@ -199,10 +223,22 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFile
         <div className="flex-1 min-w-0">
           <p className="text-[0.9rem] font-bold text-[#1a2256] truncate">{file.name}</p>
           <p className="text-[0.75rem] text-[#6e6868] font-medium mt-0.5">
-            {isProcessing ? 'Processing with AI...' : hasError ? 'Processing failed' : `${results.length} found, ${unachievedItems.length} missing`}
+            {isProcessing ? 'Processing with AI...' : hasError ? 'Processing failed' : `${foundItems.length} found, ${missingItems.length} missing`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {!isProcessing && !hasError && file.fileId && onAskAI && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAskAI(file.fileId!, file.name);
+              }}
+              className="flex items-center gap-1 text-[12px] font-bold text-[#1a2256] bg-[#f5f7fc] px-2 py-1 rounded hover:bg-[#e0e3f5] transition-colors mr-2"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              Ask AI
+            </button>
+          )}
           {isProcessing ? (
             <Loader2 className="w-4 h-4 text-[#64549f] animate-spin" />
           ) : (
@@ -220,7 +256,7 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFile
             Found Items Analysis
           </p>
           <div className="space-y-1.5 mb-6">
-            {results.map((item, idx) => (
+            {foundItems.map((item, idx) => (
               <div
                 key={`found-${idx}`}
                 onClick={() => {
@@ -263,7 +299,7 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFile
               </div>
             ))}
             
-            {results.length === 0 && (
+            {foundItems.length === 0 && (
               <div className="text-center py-4 text-sm text-slate-500">
                 No items found.
               </div>
@@ -274,19 +310,19 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFile
             Missing Items
           </p>
           <div className="space-y-1.5 opacity-80">
-            {unachievedItems.map((item, idx) => (
+            {missingItems.map((item, idx) => (
               <div
                 key={`missing-${idx}`}
                 className="flex items-center gap-3 px-3 py-2 rounded-[10px] border border-dashed border-[#e0e3f5] bg-[#fafbfc]"
               >
                 {/* Si No */}
                 <span className="text-[0.69rem] font-bold text-slate-300 w-5 text-right flex-shrink-0">
-                  {results.length + idx + 1}
+                  {foundItems.length + idx + 1}
                 </span>
 
                 {/* Clause name */}
                 <span className="flex-1 text-[0.84rem] font-medium text-slate-400">
-                  {item}
+                  {item.clause}
                 </span>
 
                 {/* Status icon */}
@@ -296,7 +332,7 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFile
               </div>
             ))}
 
-            {unachievedItems.length === 0 && (
+            {missingItems.length === 0 && (
               <div className="text-center py-4 text-sm text-slate-500">
                 All checklist items found!
               </div>
@@ -329,6 +365,7 @@ export const RecentResults = ({
   setPatientName,
   onRefreshLabResults,
   onViewReport,
+  onAskAI,
 }: RecentResultsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -488,7 +525,7 @@ export const RecentResults = ({
     if (!hasExistingResults && !hasLocalFiles) {
       return (
         <div className="text-center py-12 text-[#6e6868] bg-[#fcfdfe] rounded-[16px] border border-dashed border-[#e0e3f5]">
-          No Lab results
+          No Documents Uploaded
         </div>
       );
     }
@@ -503,6 +540,7 @@ export const RecentResults = ({
             isOpen={openFileId === file.id}
             onToggle={() => setOpenFileId(openFileId === file.id ? null : file.id)}
             onClauseClick={handleClauseClick}
+            onAskAI={onAskAI}
           />
         ))}
 
@@ -513,6 +551,7 @@ export const RecentResults = ({
               key={result.Id}
               result={result}
               handleViewReport={handleViewReport}
+              onAskAI={onAskAI}
             />
           ))
         }

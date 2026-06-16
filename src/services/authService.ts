@@ -3,7 +3,7 @@ import { parseJWT, decodeUrlToken, validateUrlToken, generateUrlToken, type UrlT
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://innov-dev.beta.injomo.com';
 
-const FASTAPI_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const FASTAPI_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
 
 class AuthService {
   // Email/Password Login

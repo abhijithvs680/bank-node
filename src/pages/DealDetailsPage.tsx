@@ -5,7 +5,7 @@ import { usePatientDataSocket } from '@/hooks/useSocket';
 import { Patient, VitalSigns, Medication, LabResult } from '@/types/patient';
 import { ChatContextWrapper } from '@/components/ChatContextWrapper';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
 
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
 import { PatientOverview } from "@/components/PatientOverview";
@@ -135,12 +135,36 @@ const DealDetailsPage = () => {
   const [chatPanelPos, setChatPanelPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const [querySessionId, setQuerySessionId] = useState<string | null>(null);
 
+  const [activeDocumentChat, setActiveDocumentChat] = useState<{ fileId: string; fileName: string; sessionId: string } | null>(null);
+
+  const handleAskAI = (fileId: string, fileName: string) => {
+    const newSessionId = `doc-session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    setActiveDocumentChat({ fileId, fileName, sessionId: newSessionId });
+    setQuerySessionId(newSessionId);
+    setChatMessages([
+      { role: 'assistant', text: `Hi! Ask me anything about the document: ${fileName}` },
+    ]);
+    setIsQueryChatOpen(true);
+    
+    fetch(`${API_BASE_URL}/session/${newSessionId}`, {
+      method: 'POST',
+    }).catch(err => console.error("Failed to create session:", err));
+  };
+
   // Manage chat session lifecycle
   useEffect(() => {
     if (!isQueryChatOpen) {
+      if (querySessionId) {
+        fetch(`${API_BASE_URL}/session/${querySessionId}`, {
+          method: 'DELETE',
+        }).catch(err => console.error("Failed to delete session:", err));
+      }
       setQuerySessionId(null);
+      setActiveDocumentChat(null);
       return;
     }
+
+    if (activeDocumentChat) return; // Handled by handleAskAI
 
     const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     setQuerySessionId(newSessionId);
@@ -153,12 +177,7 @@ const DealDetailsPage = () => {
       method: 'POST',
     }).catch(err => console.error("Failed to create session:", err));
     
-    return () => {
-      fetch(`${API_BASE_URL}/session/${newSessionId}`, {
-        method: 'DELETE',
-      }).catch(err => console.error("Failed to delete session:", err));
-    };
-  }, [isQueryChatOpen]);
+  }, [isQueryChatOpen, activeDocumentChat, querySessionId]);
 
   // Measure button position when panel opens so we can use fixed positioning
   // (escapes the header's overflow-hidden)
@@ -277,18 +296,34 @@ Answer queries concisely. If the user asks for data not in the current deal cont
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
       const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
 
-      const response = await fetch(`${API_BASE_URL}/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          deal_id: consultationId || '',
-          session_id: querySessionId,
-          user_query: text,
-          deal_data: extendedDeal
-        }),
-      });
+      let response;
+      if (activeDocumentChat) {
+        response = await fetch(`${API_BASE_URL}/query_document`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            deal_id: consultationId || '',
+            file_id: activeDocumentChat.fileId,
+            session_id: activeDocumentChat.sessionId,
+            user_query: text,
+          }),
+        });
+      } else {
+        response = await fetch(`${API_BASE_URL}/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            deal_id: consultationId || '',
+            session_id: querySessionId,
+            user_query: text,
+            deal_data: extendedDeal
+          }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -309,7 +344,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
         ...prev,
         {
           role: 'assistant',
-          text: "I encountered an error connecting to the AI service. Please make sure the backend is running at localhost:8000.",
+          text: "I encountered an error connecting to the AI service. Please make sure the backend is running at localhost:8090.",
         },
       ]);
     } finally {
@@ -1686,7 +1721,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               className="flex items-center gap-2 bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] hover:from-[#0284c7] hover:to-[#0ea5e9] text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(14,165,233,0.35)] hover:shadow-[0_6px_22px_rgba(14,165,233,0.5)] transition-all duration-200 active:scale-95"
             >
               <MessageSquareText className="w-4 h-4" />
-              <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Query Deals</span>
+              <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Ask AI</span>
             </button>
 
             <VoiceRecorder
@@ -1825,6 +1860,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                       setViewReportIndex(index);
                       setIsVisitAttachmentOpen(true);
                     }}
+                    onAskAI={handleAskAI}
                   />
                 </div>
               </TabsContent>
@@ -2162,7 +2198,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               <MessageSquareText className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-[0.94rem] font-bold text-white">Query Deals</p>
+              <p className="text-[0.94rem] font-bold text-white">Ask AI</p>
             </div>
             <button
               onClick={() => setIsQueryChatOpen(false)}
@@ -2223,15 +2259,6 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               placeholder="Ask about a deal, clause, covenant…"
               className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#1a2256] focus:ring-2 focus:ring-[#1a2256]/15 transition-all placeholder:text-[#a0b8cc]"
             />
-            <button
-              onClick={activateHandsFree}
-              className={`w-10 h-10 rounded-[10px] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all ${
-                isVoiceActive ? 'bg-red-500 animate-pulse' : 'bg-[#1a2256]'
-              }`}
-              title={isVoiceActive ? "Stop Hands-Free Mode" : "Start Hands-Free Mode"}
-            >
-              <Mic className="w-4 h-4" />
-            </button>
             <button
               onClick={sendChatMessage}
               disabled={!chatInput.trim() || chatLoading}
