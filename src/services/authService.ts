@@ -3,16 +3,49 @@ import { parseJWT, decodeUrlToken, validateUrlToken, generateUrlToken, type UrlT
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://innov-dev.beta.injomo.com';
 
+const FASTAPI_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 class AuthService {
   // Email/Password Login
   async login(email: string, password: string): Promise<User> {
-    const isMockAdmin = email === 'admin@gmail.com' && password === 'admin@123';
+    try {
+      // 1. Try the new backend session authentication
+      const response = await fetch(`${FASTAPI_BASE_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        // Backend login successful, fetch status
+        const statusResponse = await fetch(`${FASTAPI_BASE_URL}/auth/status`, { credentials: 'include' });
+        if (statusResponse.ok) {
+          const status = await statusResponse.json();
+          if (status.authenticated && status.user) {
+            localStorage.setItem('useCookieAuth', 'true');
+            // Return user object modeled after the backend response
+            return {
+              id: 1, // Fallback ID
+              firstName: status.user.split('@')[0], // Derive from email
+              lastName: "",
+              email: status.user,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Backend cookie auth failed or unavailable, falling back to mock auth.", err);
+    }
+
+    // 2. Fallback to existing mock authentication
+    const isMockAdmin = (email === 'admin@gmail.com' || email === 'admin@vizru.com') && password === 'admin@123';
 
     if (isMockAdmin) {
       const mockPayload = {
         uid: "9999",
         fname: "Admin",
-        email: "admin@gmail.com",
+        email: email,
         exp: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60 // 1 year expiry
       };
       const mockPayloadBase64 = btoa(JSON.stringify(mockPayload));
@@ -22,12 +55,13 @@ class AuthService {
       this.setTokens(mockToken, mockRefreshToken);
       localStorage.setItem('externalSocketServer', "wss://wss.vizru.studio");
       localStorage.setItem('tenantId', "204");
+      localStorage.removeItem('useCookieAuth');
 
       return {
         id: 9999,
         firstName: "Admin",
         lastName: "User",
-        email: "admin@gmail.com",
+        email: email,
         JWTtoken: mockToken,
         refresh_token: mockRefreshToken,
         ExternalSocketServer: "wss://wss.vizru.studio",
@@ -100,7 +134,34 @@ class AuthService {
     return localStorage.getItem('refreshToken');
   }
 
+  // Check backend session status
+  async checkCookieAuthStatus(): Promise<User | null> {
+    try {
+      if (localStorage.getItem('useCookieAuth') !== 'true') return null;
+      
+      const response = await fetch(`${FASTAPI_BASE_URL}/auth/status`, { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.authenticated && data.user) {
+          return {
+            id: 1, // Fallback ID
+            firstName: data.user.split('@')[0], // Derive from email
+            lastName: "",
+            email: data.user,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("Error checking cookie auth status", err);
+    }
+    return null;
+  }
+
   clearTokens(): void {
+    if (localStorage.getItem('useCookieAuth') === 'true') {
+      fetch(`${FASTAPI_BASE_URL}/logout`, { method: 'POST', credentials: 'include' }).catch(err => console.error(err));
+    }
+    localStorage.removeItem('useCookieAuth');
     localStorage.removeItem('jwtToken');
     localStorage.removeItem('refreshToken');
   }

@@ -16,6 +16,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize auth state from localStorage
   useEffect(() => {
     const initAuth = async () => {
+      // 1. Try Cookie Session Auth first
+      const cookieUser = await authService.checkCookieAuthStatus();
+      if (cookieUser) {
+        setUser(cookieUser);
+        socketService.connect();
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fallback to JWT Auth
       const token = authService.getToken();
       const refreshTokenValue = authService.getRefreshToken();
 
