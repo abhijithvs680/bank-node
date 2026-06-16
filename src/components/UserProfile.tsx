@@ -30,7 +30,7 @@ const UserProfile = ({ variant = 'compact' }: UserProfileProps) => {
   const currentUser = {
     firstName: user?.firstName || 'User',
     surName: user?.lastName || '',
-    role: 'Medical Staff',
+    role: 'Staff',
     department: 'ICU',
     shift: 'Day Shift',
     badge: 'N/A',

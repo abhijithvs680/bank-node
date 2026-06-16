@@ -89,7 +89,7 @@ const DashboardPage = () => {
       title: 'Inpatients',
       subtitle: 'Admissions, beds, care plan',
       icon: BedDouble,
-      route: '/inpatient',
+      route: '/corporate-deals',
       gradient: 'from-teal-500/10 to-cyan-500/10',
       iconColor: 'text-teal-500',
       bgPattern: 'grid',
@@ -219,7 +219,7 @@ const DashboardPage = () => {
       return;
     }
     if (id === 'in-patient') {
-      navigate('/inpatient');
+      navigate('/corporate-deals');
       return;
     }
     if (id === 'outpatient') {

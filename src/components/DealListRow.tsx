@@ -1,17 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { Patient } from "@/types/patient";
 import { Touchable } from "@/components/ui/touchable";
-import { getPatientDetailsPath } from "@/utils/patientRoutes";
 
-interface PatientListRowIpProps {
+interface DealListRowProps {
   patient: Patient;
 }
 
-export const PatientListRowIp = ({ patient }: PatientListRowIpProps) => {
+export const DealListRow = ({ patient }: DealListRowProps) => {
   const navigate = useNavigate();
 
   const handleRowClick = () => {
-    navigate(getPatientDetailsPath(patient.consultationId, "inpatient"));
+    navigate(`/deals/${patient.consultationId}`);
   };
 
   const getRiskScore = (id: string) => {
@@ -22,7 +21,7 @@ export const PatientListRowIp = ({ patient }: PatientListRowIpProps) => {
         return { score: 85, label: "Minimal", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
       case "6007":
         return { score: 64, label: "Medium", color: "text-amber-700 bg-amber-50 border-amber-200" };
-      case "6006":
+      case "1001":
       default:
         return { score: 72, label: "Low", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
     }

@@ -43,7 +43,7 @@ const LoginPage = () => {
   useEffect(() => {
     const attemptUrlTokenAuth = async () => {
       if (isAuthenticated) {
-        navigate('/inpatient');
+        navigate('/corporate-deals');
         return;
       }
 

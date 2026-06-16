@@ -854,7 +854,7 @@ Response format: { "chipType": "VENDOR_OPTIMIZATION", "scope": "GLOBAL", "title"
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center gap-6">
             <button
-              onClick={() => navigate("/inpatient")}
+              onClick={() => navigate("/corporate-deals")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 text-gray-600 hover:text-blue-600"
             >
               <ArrowLeft className="w-4 h-4" />

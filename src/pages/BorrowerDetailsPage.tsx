@@ -187,7 +187,7 @@ export default function BorrowerDetailsPage() {
             reference: 'Apex Acquisition Settlement'
           }
         };
-      case '6006': // Orion Manufacturing
+      case '1001': // Orion Manufacturing
       default:
         return {
           companyName: 'ORION MANUFACTURING HOLDINGS LIMITED',
@@ -292,7 +292,7 @@ export default function BorrowerDetailsPage() {
             "Stricter ESG disclosure requirements for supply chain environmental footprints."
           ]
         };
-      case '6006': // Orion Manufacturing
+      case '1001': // Orion Manufacturing
       default:
         return {
           strengths: [
@@ -507,7 +507,7 @@ export default function BorrowerDetailsPage() {
             { metric: "Return on Equity (ROE)", ttm: "25.8%", yr3: "24.1%", yr5: "22.0%" }
           ]
         };
-      case '6006': // Orion Manufacturing
+      case '1001': // Orion Manufacturing
       default:
         return {
           currencySymbol: 'R ',
@@ -609,7 +609,7 @@ export default function BorrowerDetailsPage() {
         <div className="relative h-full px-6 md:px-12 lg:px-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <button
-              onClick={() => navigate(`/ip-details/${consultationId}`)}
+              onClick={() => navigate(`/deals/${consultationId}`)}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 transition-all group"
             >
               <ArrowLeft className="w-5 h-5 text-white group-hover:text-white transition-colors" />

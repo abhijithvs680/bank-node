@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { PatientCardIp } from "@/components/PatientCardIp";
-import { PatientListRowIp } from "@/components/PatientListRowIp";
+import { DealCard } from "@/components/DealCard";
+import { DealListRow } from "@/components/DealListRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, Flag } from "lucide-react";
@@ -33,7 +33,7 @@ const PatientSection = ({ title, patients, viewMode, bgColor, borderColor, badge
       {viewMode === 'tile' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
           {patients.map((patient) => (
-            <PatientCardIp key={patient.consultationId} patient={patient} patientType="inpatient" />
+            <DealCard key={patient.consultationId} patient={patient} />
           ))}
         </div>
       ) : (
@@ -48,7 +48,7 @@ const PatientSection = ({ title, patients, viewMode, bgColor, borderColor, badge
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left md:text-right">Status</span>
           </div>
           {patients.map((patient) => (
-            <PatientListRowIp key={patient.consultationId} patient={patient} />
+            <DealListRow key={patient.consultationId} patient={patient} />
           ))}
         </div>
       )}
@@ -56,7 +56,7 @@ const PatientSection = ({ title, patients, viewMode, bgColor, borderColor, badge
   );
 };
 
-const PatientListPageIp = () => {
+const CorporateDealsPage = () => {
   const location = useLocation();
   const patientType = getPatientTypeFromPath(location.pathname);
   const { user } = useAuth();
@@ -119,7 +119,10 @@ const PatientListPageIp = () => {
 
   // Group patients by status
   const pendingPatients = filteredPatients.filter(
-    (patient) => (patient.dealStatus || "Pre Financial Close") === "Pre Financial Close"
+    (patient) => {
+      const status = patient.dealStatus || "Pre Financial Close";
+      return status === "Pre Financial Close" || status === "Post Financial" || status === "Active";
+    }
   );
 
   const completedPatients = filteredPatients.filter(
@@ -127,7 +130,10 @@ const PatientListPageIp = () => {
   );
 
   const getActiveCount = (patients: Patient[]) =>
-    patients.filter((p) => p.dealStatus === "Pre Financial Close").length;
+    patients.filter((p) => {
+      const status = p.dealStatus || "Pre Financial Close";
+      return status === "Pre Financial Close" || status === "Post Financial" || status === "Active";
+    }).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -289,7 +295,7 @@ const PatientListPageIp = () => {
                     </div>
                   ) : (
                     <PatientSection
-                      title="Active Deals (Pre Financial Close)"
+                      title="Active Deals"
                       patients={pendingPatients}
                       viewMode={viewMode}
                       bgColor="bg-blue-50/50"
@@ -330,4 +336,4 @@ const PatientListPageIp = () => {
   );
 };
 
-export default PatientListPageIp;
+export default CorporateDealsPage;

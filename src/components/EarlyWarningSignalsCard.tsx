@@ -31,13 +31,16 @@ export const EarlyWarningSignalsCard = ({ consultationId }: EarlyWarningSignalsC
           { text: "Working capital days increasing", severity: "medium" },
           { text: "Interest coverage ratio (ICR) trending downwards", severity: "medium" }
         ];
-      case "6006": // Orion Manufacturing - Healthy
+      case "1001": // Orion Manufacturing - Healthy
       default:
         return [
-          { text: "Credit rating outlook negative", severity: "medium" },
-          { text: "Working capital days increasing", severity: "medium" },
-          { text: "Revenue growth slowing", severity: "medium" },
-          { text: "Covenant headroom reduced", severity: "medium" }
+          { text: "Leverage ratio exceedance (BR-1005) — open breach", severity: "high" },
+          { text: "Failure to provide management accounts (BR-1008) — open breach", severity: "high" },
+          { text: "Q1 & Q2 2026 Financial Statements pending", severity: "high" },
+          { text: "Security Asset Valuation overdue since 15 Jun 2026", severity: "high" },
+          { text: "Lender KYC invalid — Zenith Industrial Holdings (LN046)", severity: "medium" },
+          { text: "Lender KYC invalid — Orion Industrial Holdings (LN047)", severity: "medium" },
+          { text: "Q1 & Q2 2026 Compliance Certificates pending", severity: "medium" },
         ];
     }
   };

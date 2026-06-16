@@ -81,44 +81,54 @@ export const UploadReportModal = ({ isOpen, onClose, admission_id, onUploadCompl
 
 
 
-    // Notify parent of pending uploads
-    const pendingFiles = files.map(file => ({
-      fileName: file.name,
-      findings: findings
-    }));
-    onUploadStart?.(pendingFiles);
+    setUploading(true);
+    setUploadStatus('uploading');
+    setUploadProgress(50); // Visual indicator
 
-    // Close modal and reset form immediately
-    resetForm();
-    onClose();
-
-    // Continue upload in background
     try {
-      await apiService.uploadPatientReports(
-        admission_id,
-        files,
-        findings,
-        () => { } // Progress tracking not needed since modal is closed
-      );
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("deal_id", admission_id);
+        formData.append("file", file);
+
+        const response = await fetch("http://localhost:8000/analyze_document", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Analysis failed: ${response.statusText}`);
+        }
+        
+        await response.json();
+      }
+
+      setUploadProgress(100);
+      setUploadStatus('success');
+      setUploadedFiles(files.map(f => ({
+        fileName: f.name,
+        fileId: '',
+        findings: findings
+      })));
 
       toast({
-        title: "Upload completed",
-        description: `${files.length} ${files.length === 1 ? 'file' : 'files'} uploaded. Analyzing...`,
+        title: "Analysis complete",
+        description: "The documents have been successfully analyzed.",
       });
 
-      // Trigger "Analyzing" state in parent
+      setUploading(false);
       onUploadSuccess?.();
-
-      // Socket will handle clearing pending state when backend processes the file
+      onUploadComplete?.();
 
     } catch (error) {
       console.error('Upload error:', error);
+      setUploadStatus('error');
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload files",
         variant: "destructive"
       });
-      // Clear pending state on error
+      setUploading(false);
       onUploadComplete?.();
     }
   };

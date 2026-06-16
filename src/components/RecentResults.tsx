@@ -22,9 +22,29 @@ interface RecentResultsProps {
   onViewReport?: (index: number) => void;
 }
 
+interface BoundingBox {
+  page_number: number;
+  ymin: number;
+  xmin: number;
+  ymax: number;
+  xmax: number;
+}
+
+interface ChecklistItemResult {
+  clause: string;
+  achieved: boolean;
+  page_numbers: number[];
+  exact_quotes: string[];
+  bounding_boxes?: BoundingBox[];
+}
+
 interface UploadedFile {
   id: string;
   name: string;
+  isUploading?: boolean;
+  error?: string;
+  fileId?: string;
+  checklistResults?: ChecklistItemResult[];
 }
 
 const CHECKLIST_ITEMS = [
@@ -152,65 +172,145 @@ interface UploadedFileRowProps {
   file: UploadedFile;
   isOpen: boolean;
   onToggle: () => void;
+  onClauseClick?: (fileId: string | undefined, pageNumber: number, boundingBoxes?: BoundingBox[]) => void;
 }
 
-const UploadedFileRow = ({ file, isOpen, onToggle }: UploadedFileRowProps) => (
-  <div className="rounded-[16px] border border-[#e0e3f5] bg-white overflow-hidden shadow-sm transition-all duration-200">
-    {/* Row header */}
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center gap-3 p-3 hover:bg-[#f5f7fc] transition-colors text-left"
-    >
-      <div className="w-[40px] h-[40px] rounded-[10px] bg-[#f0ecf7] flex items-center justify-center flex-shrink-0">
-        <FileText className="w-4 h-4 text-[#64549f]" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[0.9rem] font-bold text-[#1a2256] truncate">{file.name}</p>
-        <p className="text-[0.75rem] text-[#6e6868] font-medium mt-0.5">
-          {CHECKLIST_ITEMS.length} items
-        </p>
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {isOpen
-          ? <ChevronUp className="w-4 h-4 text-slate-400" />
-          : <ChevronDown className="w-4 h-4 text-slate-400" />
-        }
-      </div>
-    </button>
-
-    {/* Accordion checklist */}
-    {isOpen && (
-      <div className="border-t border-[#f0f3f9] bg-[#fbfcfe] px-4 py-4 animate-in fade-in slide-in-from-top-1 duration-200">
-        <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-3">
-          Document Checklist
-        </p>
-        <div className="space-y-1.5">
-          {CHECKLIST_ITEMS.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex items-center gap-3 px-3 py-2 rounded-[10px] border border-[#e0e3f5] bg-white"
-            >
-              {/* Si No */}
-              <span className="text-[0.69rem] font-bold text-slate-400 w-5 text-right flex-shrink-0">
-                {idx + 1}
-              </span>
-
-              {/* Clause name */}
-              <span className="flex-1 text-[0.84rem] font-medium text-[#1a2256]">
-                {item}
-              </span>
-
-              {/* Green tick (static, always green) */}
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-sm shadow-green-200">
-                <CheckCircle2 className="w-4 h-4 text-white" />
-              </div>
-            </div>
-          ))}
+const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick }: UploadedFileRowProps) => {
+  const isProcessing = file.isUploading;
+  const hasError = !!file.error;
+  const results = file.checklistResults || [];
+  
+  const achievedClauses = new Set(results.map(r => r.clause.toLowerCase().trim()));
+  const unachievedItems = CHECKLIST_ITEMS.filter(item => !achievedClauses.has(item.toLowerCase().trim()));
+  
+  return (
+    <div className="rounded-[16px] border border-[#e0e3f5] bg-white overflow-hidden shadow-sm transition-all duration-200">
+      {/* Row header */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 p-3 hover:bg-[#f5f7fc] transition-colors text-left disabled:opacity-70 disabled:cursor-not-allowed"
+        disabled={isProcessing}
+      >
+        <div className="w-[40px] h-[40px] rounded-[10px] bg-[#f0ecf7] flex items-center justify-center flex-shrink-0">
+          <FileText className="w-4 h-4 text-[#64549f]" />
         </div>
-      </div>
-    )}
-  </div>
-);
+        <div className="flex-1 min-w-0">
+          <p className="text-[0.9rem] font-bold text-[#1a2256] truncate">{file.name}</p>
+          <p className="text-[0.75rem] text-[#6e6868] font-medium mt-0.5">
+            {isProcessing ? 'Processing with AI...' : hasError ? 'Processing failed' : `${results.length} found, ${unachievedItems.length} missing`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isProcessing ? (
+            <Loader2 className="w-4 h-4 text-[#64549f] animate-spin" />
+          ) : (
+            isOpen
+              ? <ChevronUp className="w-4 h-4 text-slate-400" />
+              : <ChevronDown className="w-4 h-4 text-slate-400" />
+          )}
+        </div>
+      </button>
+
+      {/* Accordion checklist */}
+      {isOpen && !isProcessing && !hasError && (
+        <div className="border-t border-[#f0f3f9] bg-[#fbfcfe] px-4 py-4 animate-in fade-in slide-in-from-top-1 duration-200">
+          <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-3">
+            Found Items Analysis
+          </p>
+          <div className="space-y-1.5 mb-6">
+            {results.map((item, idx) => (
+              <div
+                key={`found-${idx}`}
+                onClick={() => {
+                  if (onClauseClick && item.page_numbers && item.page_numbers.length > 0) {
+                    onClauseClick(file.fileId, item.page_numbers[0], item.bounding_boxes);
+                  }
+                }}
+                className={`flex items-start gap-3 px-3 py-2 rounded-[10px] border border-[#e0e3f5] bg-white ${item.page_numbers && item.page_numbers.length > 0 ? 'cursor-pointer hover:bg-slate-50 transition-colors' : ''}`}
+              >
+                {/* Si No */}
+                <span className="text-[0.69rem] font-bold text-slate-400 w-5 text-right flex-shrink-0 mt-0.5">
+                  {idx + 1}
+                </span>
+
+                {/* Clause name & info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[0.84rem] font-medium text-[#1a2256]">
+                    {item.clause}
+                  </p>
+                  {item.achieved && item.exact_quotes && item.exact_quotes.length > 0 && (
+                    <p className="text-[0.75rem] text-slate-500 mt-1 italic leading-snug">
+                      "{item.exact_quotes[0]}"
+                    </p>
+                  )}
+                  {item.page_numbers && item.page_numbers.length > 0 && (
+                    <p className="text-[0.65rem] text-slate-400 mt-1 font-medium">
+                      Page: {item.page_numbers.join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Status icon */}
+                <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center shadow-sm ${item.achieved ? 'bg-green-500 shadow-green-200' : 'bg-red-50 shadow-red-100 border border-red-200'}`}>
+                  {item.achieved ? (
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                  ) : (
+                    <span className="text-red-500 font-bold text-xs">X</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {results.length === 0 && (
+              <div className="text-center py-4 text-sm text-slate-500">
+                No items found.
+              </div>
+            )}
+          </div>
+
+          <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-3">
+            Missing Items
+          </p>
+          <div className="space-y-1.5 opacity-80">
+            {unachievedItems.map((item, idx) => (
+              <div
+                key={`missing-${idx}`}
+                className="flex items-center gap-3 px-3 py-2 rounded-[10px] border border-dashed border-[#e0e3f5] bg-[#fafbfc]"
+              >
+                {/* Si No */}
+                <span className="text-[0.69rem] font-bold text-slate-300 w-5 text-right flex-shrink-0">
+                  {results.length + idx + 1}
+                </span>
+
+                {/* Clause name */}
+                <span className="flex-1 text-[0.84rem] font-medium text-slate-400">
+                  {item}
+                </span>
+
+                {/* Status icon */}
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shadow-sm">
+                  <span className="text-slate-400 font-bold text-xs">-</span>
+                </div>
+              </div>
+            ))}
+
+            {unachievedItems.length === 0 && (
+              <div className="text-center py-4 text-sm text-slate-500">
+                All checklist items found!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {isOpen && hasError && (
+        <div className="p-4 text-sm text-red-500 bg-red-50 border-t border-red-100">
+          {file.error}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export const RecentResults = ({
@@ -232,6 +332,52 @@ export const RecentResults = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [openFileId, setOpenFileId] = useState<string | null>(null);
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
+  const [viewingFileUrl, setViewingFileUrl] = useState<string | null>(null);
+  const [viewingTargetPage, setViewingTargetPage] = useState<number | undefined>(undefined);
+  const [viewingTargetBoxes, setViewingTargetBoxes] = useState<BoundingBox[]>([]);
+
+  // Fetch existing deal files on mount
+  useEffect(() => {
+    if (!admissionId) return;
+
+    const fetchDealFiles = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/deal_files/${admissionId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch deal files: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        if (data && data.files) {
+          const loadedFiles: UploadedFile[] = data.files.map((file: any, index: number) => ({
+            id: `server-${file.file_id}`,
+            name: file.file_name || `Document ${index + 1}`,
+            fileId: file.file_id,
+            checklistResults: file.checklist_data || [],
+            isUploading: false,
+          }));
+          
+          setUploadedFiles(prev => {
+            const existingIds = new Set(prev.map(p => p.fileId).filter(Boolean));
+            const newFiles = loadedFiles.filter(f => !existingIds.has(f.fileId));
+            return [...newFiles, ...prev];
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching deal files:", err);
+      }
+    };
+
+    fetchDealFiles();
+  }, [admissionId]);
+
+  const handleClauseClick = (fileId: string | undefined, pageNumber: number, boundingBoxes?: BoundingBox[]) => {
+    if (fileId) {
+      setViewingFileUrl(`http://localhost:8000/download_document?deal_id=${admissionId}&file_id=${fileId}`);
+    }
+    setViewingTargetPage(pageNumber);
+    setViewingTargetBoxes(boundingBoxes || []);
+  };
 
   // Filter reports that have files
   const reportsWithFiles = useMemo(() => {
@@ -250,16 +396,56 @@ export const RecentResults = ({
   }, [labResults]);
 
   // Handle file selection from native browser
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
-    const newFiles: UploadedFile[] = files.map(f => ({
-      id: `local-${Date.now()}-${Math.random()}`,
-      name: f.name,
-    }));
-    setUploadedFiles(prev => [...newFiles, ...prev]);
-    // Reset input so same file can be re-selected
-    e.target.value = '';
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    const tempId = `local-${Date.now()}-${Math.random()}`;
+    const newFile: UploadedFile = {
+      id: tempId,
+      name: file.name,
+      isUploading: true
+    };
+    
+    setUploadedFiles(prev => [newFile, ...prev]);
+
+    try {
+      const formData = new FormData();
+      formData.append("deal_id", admissionId || 'unknown');
+      formData.append("file", file);
+
+      const response = await fetch("http://localhost:8000/analyze_document", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === tempId 
+          ? { 
+              ...f, 
+              isUploading: false, 
+              fileId: data.file_id,
+              checklistResults: data.checklist_analysis?.items || [] 
+            }
+          : f
+      ));
+
+    } catch (error) {
+      console.error("Failed to analyze document:", error);
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === tempId 
+          ? { ...f, isUploading: false, error: 'Failed to process' }
+          : f
+      ));
+    } finally {
+      e.target.value = ''; // Reset input
+    }
   };
 
 
@@ -314,6 +500,7 @@ export const RecentResults = ({
             file={file}
             isOpen={openFileId === file.id}
             onToggle={() => setOpenFileId(openFileId === file.id ? null : file.id)}
+            onClauseClick={handleClauseClick}
           />
         ))}
 
@@ -346,7 +533,6 @@ export const RecentResults = ({
       <div className="flex items-center justify-between px-1">
         <div>
           <h3 className="text-[1.125rem] font-semibold text-[#1a2256]">Documents</h3>
-          {/* <p className="text-[0.81rem] text-[#6e6868] font-medium">Reports and AI summaries</p> */}
         </div>
         <Button
           onClick={() => fileInputRef.current?.click()}
@@ -362,6 +548,21 @@ export const RecentResults = ({
       <div className="grid grid-cols-1 gap-3 medical-scroll max-h-[600px] overflow-y-auto pr-2">
         {renderContent()}
       </div>
+
+      {viewingFileUrl && (
+        <PDFSidebar
+          isOpen={!!viewingFileUrl}
+          onClose={() => {
+            setViewingFileUrl(null);
+            setViewingTargetPage(undefined);
+            setViewingTargetBoxes([]);
+          }}
+          pdfUrl={viewingFileUrl}
+          targetPage={viewingTargetPage}
+          targetBoxes={viewingTargetBoxes}
+          patientName="Document Analysis"
+        />
+      )}
     </div>
   );
 };

@@ -10,7 +10,7 @@ interface PatientCardProps {
   patientType?: 'inpatient' | 'outpatient';
 }
 
-export const PatientCardIp = ({ patient, patientType = 'inpatient' }: PatientCardProps) => {
+export const DealCard = ({ patient, patientType = 'inpatient' }: PatientCardProps) => {
   const navigate = useNavigate();
 
   const getRiskScore = (id: string) => {
@@ -21,7 +21,7 @@ export const PatientCardIp = ({ patient, patientType = 'inpatient' }: PatientCar
         return { score: 85, label: "Minimal", color: "text-emerald-600" };
       case "6007":
         return { score: 64, label: "Medium", color: "text-amber-600" };
-      case "6006":
+      case "1001":
       default:
         return { score: 72, label: "Low", color: "text-emerald-600" };
     }
@@ -53,7 +53,7 @@ export const PatientCardIp = ({ patient, patientType = 'inpatient' }: PatientCar
 
   return (
     <Touchable
-      onClick={() => navigate(`/ip-details/${patient.consultationId}`)}
+      onClick={() => navigate(`/deals/${patient.consultationId}`)}
       className="rounded-[24px]"
     >
       <Card

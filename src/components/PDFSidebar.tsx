@@ -4,6 +4,12 @@ import { X, Download, Printer, ChevronLeft, ChevronRight, FileText, ZoomIn, Zoom
 import { Touchable } from '@/components/ui/touchable';
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Configure worker to handle rendering processes off the main UI thread
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface Report {
   id: string;
@@ -13,6 +19,14 @@ interface Report {
   testName?: string;
   findings?: string;
   summary?: string;
+}
+
+export interface BoundingBox {
+  page_number: number;
+  ymin: number;
+  xmin: number;
+  ymax: number;
+  xmax: number;
 }
 
 // Support both new multi-report interface and legacy single-file interface
@@ -28,6 +42,8 @@ interface PDFSidebarProps {
   pdfUrl?: string;
   testName?: string;
   selectedFileType?: string;
+  targetPage?: number;
+  targetBoxes?: BoundingBox[];
 }
 
 export const PDFSidebar = ({ 
@@ -41,7 +57,9 @@ export const PDFSidebar = ({
   // Legacy props
   pdfUrl,
   testName,
-  selectedFileType
+  selectedFileType,
+  targetPage,
+  targetBoxes
 }: PDFSidebarProps) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -59,6 +77,26 @@ export const PDFSidebar = ({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // react-pdf state
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (numPages && targetPage && pageRefs.current[targetPage]) {
+      const timer = setTimeout(() => {
+        pageRefs.current[targetPage]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [numPages, targetPage]);
+
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+    setNumPages(numPages);
+  }
 
   // Convert legacy props to reports array if needed
   const reports = useMemo(() => {
@@ -296,7 +334,7 @@ export const PDFSidebar = ({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="right" 
-        className="w-full sm:max-w-full p-0 flex flex-col"
+        className="w-full sm:max-w-[50vw] p-0 flex flex-col"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -558,14 +596,51 @@ export const PDFSidebar = ({
                 </div>
               ) : (
                 <div 
-                  className="w-full h-full"
-                  onWheel={handlePdfWheel}
+                  className="w-full h-full overflow-y-auto bg-[#4b4e51] flex flex-col items-center py-6"
                 >
-                  <iframe
-                    src={`${currentReport.fileUrl}#zoom=${pdfZoom}`}
-                    className="w-full h-full border-0"
-                    title={`${currentReport.fileName} Report`}
-                  />
+                  <Document
+                    file={currentReport.fileUrl}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    loading={<div className="text-white">Streaming document...</div>}
+                    error={<div className="text-red-400">Failed to load PDF.</div>}
+                  >
+                    {Array.from(new Array(numPages || 0), (el, index) => {
+                      const pageNumber = index + 1;
+                      return (
+                        <div
+                          key={pageNumber}
+                          ref={(el) => {
+                            if (pageRefs.current) {
+                              pageRefs.current[pageNumber] = el;
+                            }
+                          }}
+                          className="mb-6 shadow-lg bg-white relative"
+                        >
+                          <Page
+                            pageNumber={pageNumber}
+                            scale={pdfZoom / 100}
+                            renderAnnotationLayer={false}
+                            renderTextLayer={false}
+                          />
+                          {targetBoxes && targetBoxes.map((box, i) => {
+                            if (box.page_number !== pageNumber) return null;
+                            return (
+                              <div
+                                key={i}
+                                className="absolute bg-yellow-400/40 border-[1.5px] border-yellow-500/70 pointer-events-none mix-blend-multiply"
+                                style={{
+                                  top: `${(box.ymin / 1000) * 100}%`,
+                                  left: `${(box.xmin / 1000) * 100}%`,
+                                  height: `${((box.ymax - box.ymin) / 1000) * 100}%`,
+                                  width: `${((box.xmax - box.xmin) / 1000) * 100}%`,
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </Document>
                 </div>
               )}
             </div>

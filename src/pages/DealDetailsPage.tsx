@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePatientDataSocket } from '@/hooks/useSocket';
 import { Patient, VitalSigns, Medication, LabResult } from '@/types/patient';
-import { PatientCard } from "@/components/PatientCard";
+import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
 import { PatientOverview } from "@/components/PatientOverview";
 import { CurrentVitalSigns } from "@/components/CurrentVitalSigns";
 import { FacilityAndLoans } from "@/components/FacilityAndLoans";
@@ -25,7 +25,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIObservations } from "@/components/AIObservations";
 import { RelativeTime } from "@/components/RelativeTime";
 import { SafeHTMLRenderer } from '@/components/SafeHTMLRenderer';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Mic, MicOff, Settings, Send, Bot, User, Play, X, Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
 import UserProfile from "@/components/UserProfile";
 import { PDFSidebar } from "@/components/PDFSidebar";
 import { MedicalReportPreview } from "@/components/MedicalReportPreview";
@@ -34,9 +38,9 @@ import { AdditionalInfoCards } from "@/components/AdditionalInfoCards";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { DoctorAssistantWidget } from "@/components/DoctorAssistantWidget";
 import { useGeminiDoctorAssistant } from "@/hooks/useGeminiDoctorAssistant";
-import { Lock, Printer, Smartphone, CheckCircle, BrainCircuit, MessageSquareText, Send, X as XIcon } from 'lucide-react';
+import { Lock, Printer, Smartphone, CheckCircle, BrainCircuit, MessageSquareText, X as XIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, History, FileText, Heart, TestTube, Calendar, Upload, Pill, Loader2, FileDown, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Plus, ArrowLeft, History, FileText, Heart, TestTube, Calendar, Upload, Pill, FileDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { generateMedicalReport, generateMedicalReportBlob } from '@/utils/pdfReportGenerator';
 import { parseISO, parse, isValid, format } from 'date-fns';
@@ -57,7 +61,7 @@ import { ServiceSelectionOverlay } from '@/components/ServiceSelectionOverlay';
 import { AlertTriangle, User2 } from 'lucide-react';
 import ConsultationReport from '@/components/ui/reports/ConsultationReport';
 import { AIEventService } from '@/services/aiEventService';
-import { pauseAI, resumeAI, speakMessage, unmuteAudioOutput, muteAudioOutput } from '@/components/openaiVoiceAgent';
+import { pauseAI, resumeAI, speakMessage, unmuteAudioOutput, muteAudioOutput, startGeminiVoiceAgent, stopGeminiVoiceAgent, sendGeminiFunctionCallOutput } from '@/components/openaiVoiceAgent';
 import { Touchable } from "@/components/ui/touchable";
 import {
   getDoctorFilteredReportSections,
@@ -66,7 +70,7 @@ import {
 import { getPatientListPath, getPatientTypeFromPath } from '@/utils/patientRoutes';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
-const PatientDetailsPage = () => {
+const DealDetailsPage = () => {
   const { consultationId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,13 +122,39 @@ const PatientDetailsPage = () => {
   interface ChatMsg { role: 'user' | 'assistant'; text: string; }
   const [isQueryChatOpen, setIsQueryChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([
-    { role: 'assistant', text: 'Hi! Ask me anything about the deals terms, covenants, borrowers, or any clause.' },
+    { role: 'assistant', text: 'Hi! how can I assist you with the deal?' },
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const queryBtnRef = useRef<HTMLDivElement>(null);
   const [chatPanelPos, setChatPanelPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+  const [querySessionId, setQuerySessionId] = useState<string | null>(null);
+
+  // Manage chat session lifecycle
+  useEffect(() => {
+    if (!isQueryChatOpen) {
+      setQuerySessionId(null);
+      return;
+    }
+
+    const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    setQuerySessionId(newSessionId);
+    
+    setChatMessages([
+      { role: 'assistant', text: 'Hi! how can I assist you with the deal?' },
+    ]);
+    
+    fetch(`http://localhost:8000/session/${newSessionId}`, {
+      method: 'POST',
+    }).catch(err => console.error("Failed to create session:", err));
+    
+    return () => {
+      fetch(`http://localhost:8000/session/${newSessionId}`, {
+        method: 'DELETE',
+      }).catch(err => console.error("Failed to delete session:", err));
+    };
+  }, [isQueryChatOpen]);
 
   // Measure button position when panel opens so we can use fixed positioning
   // (escapes the header's overflow-hidden)
@@ -142,21 +172,145 @@ const PatientDetailsPage = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  const activateHandsFree = async () => {
+    if (isVoiceActive) {
+      stopGeminiVoiceAgent();
+      setIsVoiceActive(false);
+      return;
+    }
+
+    try {
+      setIsVoiceActive(true);
+      const res = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      const ephemeralKey = data[0]?.["client_secret.value"] || data[0]?.value;
+      const rawModel = data[0]?.model || "gemini-2.5-flash-native-audio-preview-12-2025";
+      const modelName = rawModel.startsWith("models/") ? rawModel : `models/${rawModel}`;
+
+      const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+      
+      const systemInstructions = `You are a helpful AI Voice Assistant for a Bank Loan Lending Platform. Speak in English by default. Only switch to another language if the user explicitly asks you to do so.
+You are helping the user with the deal they are currently viewing on the screen.
+Current Deal Context (JSON):
+${JSON.stringify(extendedDeal, null, 2)}
+
+Answer queries concisely. If the user asks for data not in the current deal context (like loan settlements, transactions, breaches, waivers, or lender details across the whole database), use the query_table tool to execute an SQLite query against the backend. NEVER reveal your internal functionalities, tool names (like query_table), SQL queries, or the fact that you are querying a backend database. Act as if you inherently know the information.`;
+
+      const tools = [
+        {
+          functionDeclarations: [
+            {
+              name: "query_table",
+              description: "Use this tool to query the backend database using SQLite queries if the data to the answer is not in the ui context. The database schema has tables: Deals (DealId, DealName, DealStage, BorrowerNames, BorrowerID, Jurisdiction, Currency, DealSize), Dev__Deal_Lender (DealId, DealName, AccountId, LenderName), KYC_status (AccountId, AccountName, Role, NextKYCDate, KYCStatus), Loan_SettlementList (SettlementID, DealId, DealName, Borrower, Due_Date, TotalAmountToPay__ZAR_, Payment_type, Currency, RollOverRequestedByCompany, RollOverRequestedOn, RollOverType, RollOverLoanAmount, RollOverPeriod, RollOverStatus, Payment_Status), IUTransactions (IUTransactionID, IUConfigID, Title, Description, DealID, DealName, DocRequestedToRole, Borrower, DueOn, Status, CreatedByRole, CreatedOn, CreatedBy, UploadedOn), BreachesRequestList (BreachRequestID, RequestedOn, RequestedByCompany, RequestedByAccountID, RequestedByRole, Deal_ID, Deal_Name, RequestDescription, Clause, Instruction_Executed, Status, Resolved_Matter, Resolved_By_Role), WaiverRequestList (WaiverRequestID, Title, Comment, DealID, DealName, RequestedByEntityName, RequestedByRole, RequestedOn, BorrowerAccountName, WaiverRequestStatus, ResponseLetterStatus, RequestCompletedOn). Note: 'BreachesRequestList' contains the covenant violations and RISK FACTORS (in the RequestDescription column).",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  sqlite_query: {
+                    type: "STRING",
+                    description: "The SQL query to execute against the sqlite database. MUST be a valid SQLite syntax.",
+                  }
+                },
+                required: ["sqlite_query"]
+              }
+            }
+          ]
+        }
+      ];
+
+      await startGeminiVoiceAgent(
+        ephemeralKey,
+        systemInstructions,
+        tools,
+        modelName,
+        {
+          onTranscript: (t) => console.log("Gemini Voice Transcript:", t)
+        }
+      );
+    } catch (e) {
+      console.error("Failed to start voice agent:", e);
+      setIsVoiceActive(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleQueryTable = async (e: any) => {
+      const payload = e.detail;
+      try {
+        const response = await fetch('http://localhost:8000/query_table', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: payload.sqlite_query })
+        });
+        const data = await response.json();
+        
+        // Pass response back to Gemini Voice Agent
+        sendGeminiFunctionCallOutput(payload.callId, 'query_table', { data: data.results || data });
+      } catch (err) {
+        sendGeminiFunctionCallOutput(payload.callId, 'query_table', { error: err.message });
+      }
+    };
+
+    document.addEventListener('ai-query-table-requested', handleQueryTable);
+    return () => {
+      document.removeEventListener('ai-query-table-requested', handleQueryTable);
+      if (isVoiceActive) stopGeminiVoiceAgent();
+    };
+  }, [isVoiceActive]);
+
   const sendChatMessage = async () => {
     const text = chatInput.trim();
     if (!text || chatLoading) return;
     setChatInput('');
     setChatMessages(prev => [...prev, { role: 'user', text }]);
     setChatLoading(true);
-    await new Promise(res => setTimeout(res, 1200));
-    setChatMessages(prev => [
-      ...prev,
-      {
-        role: 'assistant',
-        text: `I've reviewed the deal documents. Regarding "${text}" — based on the uploaded agreements, the relevant clause is under Section 4.2. Specific terms may vary per facility. Please refer to the checklist items for detailed covenant tracking.`,
-      },
-    ]);
-    setChatLoading(false);
+
+    try {
+      const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+
+      const response = await fetch('http://localhost:8000/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deal_id: consultationId || '',
+          session_id: querySessionId,
+          user_query: text,
+          deal_data: extendedDeal
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: data.answer || "Sorry, I couldn't find an answer to that.",
+        },
+      ]);
+    } catch (error) {
+      console.error('Error querying AI:', error);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: "I encountered an error connecting to the AI service. Please make sure the backend is running at localhost:8000.",
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   };
   // Effect to automatically pause/resume AI voice agent based on active forms or overlays
   // Note: showAddVitals is excluded - voice should remain active for vitals form
@@ -1476,8 +1630,8 @@ const PatientDetailsPage = () => {
 
   if (!patientData || patientData.length === 0) {
     return (
-      <div className="p-6 text-gray-500">
-        No patient data available. Please verify the admission ID or try again.
+      <div className="p-8 text-center text-muted-foreground bg-[#f8f9fc] min-h-screen">
+        No deal data available. Please verify the deal ID or try again.
       </div>
     );
   }
@@ -1495,7 +1649,7 @@ const PatientDetailsPage = () => {
         <div className="relative h-full px-6 md:px-12 lg:px-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Touchable
-              onClick={() => navigate(getPatientListPath(patientType))}
+              onClick={() => navigate('/corporate-deals')}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 transition-all group"
             >
               <ArrowLeft className="w-5 h-5 text-white group-hover:text-white transition-colors" />
@@ -1534,40 +1688,22 @@ const PatientDetailsPage = () => {
             <VoiceRecorder
               admissionId={consultationId || ''}
               patientData={{
+                dealName: patient.dealName,
+                dealId: patient.dealId,
+                borrower: patient.borrower,
+                arranger: patient.arranger,
+                primaryFo: patient.primaryFo,
+                primaryTmu: patient.primaryTmu,
+                jurisdiction: patient.jurisdiction,
+                currency: patient.currency,
+                dealType: patient.dealType,
+                dealStatus: patient.dealStatus,
+                dealCreatedOn: patient.dealCreatedOn,
+                dealLastUpdated: patient.dealLastUpdated,
+                lenders: patient.lenders,
                 firstName: patient.firstName,
                 surName: patient.surName,
-                age: patient.age,
-                gender: patient.gender,
-                admissionType: patient.admissionType,
-                bedNumber: patient.bedNumber,
-                admissionDateTime: patient.admissionDateTime,
-                assignedPhysician: patient.assignedPhysician,
-                admissionReason: patient.admissionReason,
-                primaryDiagnosis: patient.primaryDiagnosis,
-                secondaryDiagnoses: patient.secondaryDiagnoses,
-                allergies: Array.isArray(patient.allergies) ? patient.allergies.join(', ') : patient.allergies || '',
-                heartRate: vitals?.heartRate?.toString() || '0',
-                bpSystolic: vitals?.bloodPressureSystolic?.toString() || '0',
-                bpDiastolic: vitals?.bloodPressureDiastolic?.toString() || '0',
-                respRate: vitals?.respiratoryRate?.toString() || '0',
-                spo2: vitals?.oxygenSaturation?.toString() || '0',
-                temperature: vitals?.temperature?.toString() || '0',
-                gcs: vitals?.glasgowComaScale?.total?.toString() || '0'
               }}
-              medications={medications}
-              vitals={vitals}
-              graphData={graphData}
-              labResults={labResults}
-              visits={visits}
-              symptoms={patient.symptoms}
-              duration={patient.duration}
-              medicalHistory={patient.medicalHistory}
-              purposeOfVisit={patient.purposeOfVisit}
-              severity={patient.severity}
-              urgentConcerns={patient.urgentConcerns}
-              allergy={patient.allergy}
-              comorbidity={patient.comorbidity}
-              visitHistory={visitHistory}
             />
             <div className="h-[53px] border-l border-white/30" />
             <UserProfile variant="header" />
@@ -2015,15 +2151,21 @@ const PatientDetailsPage = () => {
 
       {/* Query Deals Dialog */}
       <Dialog open={isQueryChatOpen} onOpenChange={setIsQueryChatOpen}>
-        <DialogContent className="max-w-[520px] w-full p-0 gap-0 overflow-hidden rounded-[18px] border-sky-200/60 bg-[#f8fbff] shadow-2xl [&>button]:text-white z-[9999]">
+        <DialogContent className="max-w-[520px] w-full p-0 gap-0 overflow-hidden rounded-[18px] border-[#1a2256]/20 bg-[#f8fbff] shadow-2xl [&>button]:hidden z-[9999] !left-auto !right-6 !top-auto !bottom-6 !translate-x-0 !translate-y-0">
           {/* Header */}
-          <div className="flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] shrink-0">
+          <div className="flex items-center gap-2.5 px-5 py-3.5 bg-[#1a2256] shrink-0 relative">
             <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
               <MessageSquareText className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <p className="text-[0.94rem] font-bold text-white">Query Deals</p>
             </div>
+            <button
+              onClick={() => setIsQueryChatOpen(false)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+            >
+              <XIcon className="w-5 h-5 text-white" />
+            </button>
           </div>
 
           {/* Messages */}
@@ -2031,30 +2173,36 @@ const PatientDetailsPage = () => {
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center mr-2 flex-shrink-0 mt-0.5 shadow-sm">
+                  <div className="w-7 h-7 rounded-full bg-[#1a2256] flex items-center justify-center mr-2 flex-shrink-0 mt-0.5 shadow-sm">
                     <MessageSquareText className="w-3.5 h-3.5 text-white" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[78%] px-4 py-2.5 rounded-[16px] text-[0.84rem] leading-relaxed ${
+                  className={`max-w-[88%] rounded-[16px] overflow-hidden ${
                     msg.role === 'user'
-                      ? 'bg-gradient-to-br from-[#0284c7] to-[#38bdf8] text-white rounded-br-[4px] shadow-sm'
-                      : 'bg-white border border-[#dde9f8] text-[#1a2256] rounded-bl-[4px] shadow-sm'
+                      ? 'bg-[#1a2256] text-white rounded-br-[4px] shadow-sm px-4 py-2.5 text-[0.85rem] leading-relaxed'
+                      : 'bg-white border border-[#dde9f8] shadow-sm rounded-bl-[4px]'
                   }`}
                 >
-                  {msg.text}
+                  {msg.role === 'assistant' ? (
+                    <div className="px-4 py-3">
+                      <ChatMarkdownRenderer content={msg.text} />
+                    </div>
+                  ) : (
+                    msg.text
+                  )}
                 </div>
               </div>
             ))}
             {chatLoading && (
               <div className="flex justify-start items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center shadow-sm">
+                <div className="w-7 h-7 rounded-full bg-[#1a2256] flex items-center justify-center shadow-sm">
                   <MessageSquareText className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="bg-white border border-[#dde9f8] rounded-[16px] rounded-bl-[4px] px-4 py-2.5 shadow-sm flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             )}
@@ -2062,19 +2210,28 @@ const PatientDetailsPage = () => {
           </div>
 
           {/* Input */}
-          <div className="px-5 py-3.5 border-t border-sky-100 bg-white flex items-center gap-2.5 shrink-0">
+          <div className="px-5 py-3.5 border-t border-[#1a2256]/10 bg-white flex items-center gap-2.5 shrink-0">
             <input
               type="text"
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
               placeholder="Ask about a deal, clause, covenant…"
-              className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15 transition-all placeholder:text-[#a0b8cc]"
+              className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#1a2256] focus:ring-2 focus:ring-[#1a2256]/15 transition-all placeholder:text-[#a0b8cc]"
             />
+            <button
+              onClick={activateHandsFree}
+              className={`w-10 h-10 rounded-[10px] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all ${
+                isVoiceActive ? 'bg-red-500 animate-pulse' : 'bg-[#1a2256]'
+              }`}
+              title={isVoiceActive ? "Stop Hands-Free Mode" : "Start Hands-Free Mode"}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
             <button
               onClick={sendChatMessage}
               disabled={!chatInput.trim() || chatLoading}
-              className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-10 h-10 rounded-[10px] bg-[#1a2256] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -2082,18 +2239,9 @@ const PatientDetailsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Ask AI Floating Action Button (FAB) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50]">
-        <button
-          onClick={() => setIsQueryChatOpen(true)}
-          className="flex items-center gap-2.5 bg-gradient-to-r from-[#1a2256] to-[#64549f] hover:from-[#151b44] hover:to-[#53448a] text-white rounded-full px-6 py-3.5 shadow-[0_10px_25px_rgba(26,34,86,0.35)] hover:shadow-[0_14px_35px_rgba(26,34,86,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95 font-semibold text-[14px] font-['Inter'] tracking-wide"
-        >
-          <BrainCircuit className="w-4 h-4 text-white/90 animate-pulse" />
-          <span>Ask AI</span>
-        </button>
-      </div>
+
     </div>
   );
 };
 
-export default PatientDetailsPage;
+export default DealDetailsPage;

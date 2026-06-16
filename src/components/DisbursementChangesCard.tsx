@@ -132,7 +132,7 @@ export const DisbursementChangesCard = ({ consultationId }: DisbursementChangesC
             icon: <PieChart className={iconClass} />
           }
         ];
-      case "6006": // Orion Manufacturing
+      case "1001": // Orion Manufacturing
       default:
         return [
           {

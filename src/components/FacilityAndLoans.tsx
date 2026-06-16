@@ -199,7 +199,7 @@ export const FacilityAndLoans = ({ consultationId, currency = "ZAR" }: FacilityA
           }
         ];
 
-      case "6006": // GoodLock
+      case "1001": // GoodLock
       default:
         return [
           {
@@ -216,7 +216,7 @@ export const FacilityAndLoans = ({ consultationId, currency = "ZAR" }: FacilityA
             availabilityDate: "15 Nov 2024",
             agencyFee: "15,000.00",
             loan: {
-              loanId: "LN-6006-001",
+              loanId: "LN-1001-001",
               principalBalance: "ZAR 200,000,000.00",
               interestRateType: "Floating",
               currentPeriodStart: "01 Apr 2025",
@@ -240,7 +240,7 @@ export const FacilityAndLoans = ({ consultationId, currency = "ZAR" }: FacilityA
             availabilityDate: "15 May 2029",
             agencyFee: "0.00",
             loan: {
-              loanId: "LN-6006-002",
+              loanId: "LN-1001-002",
               principalBalance: "ZAR 100,000,000.00",
               interestRateType: "Floating",
               currentPeriodStart: "01 May 2025",
@@ -264,7 +264,7 @@ export const FacilityAndLoans = ({ consultationId, currency = "ZAR" }: FacilityA
             availabilityDate: "15 May 2027",
             agencyFee: "0.00",
             loan: {
-              loanId: "LN-6006-003",
+              loanId: "LN-1001-003",
               principalBalance: "ZAR 50,000,000.00",
               interestRateType: "Floating",
               currentPeriodStart: "01 May 2025",

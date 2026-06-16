@@ -35,15 +35,15 @@ export const LoanHealthScoreCard = ({ consultationId }: { consultationId: string
           trend: "Declining",
           comment: "Elevated LBO leverage and lease obligations are offset by solid e-commerce cash flows."
         };
-      case "6006": // Orion Manufacturing
+      case "1001": // Orion Manufacturing
       default:
         return {
           score: 72,
           label: "Healthy",
           labelColor: "fill-emerald-600",
-          bgColor: "bg-emerald-50/50 border-emerald-100/50 text-emerald-800",
+          bgColor: "bg-amber-50/60 border-amber-100/60 text-amber-800",
           trend: "Stable",
-          comment: ""
+          comment: "Underlying financials remain stable but 2 open covenant breaches (BR-1005, BR-1008) and overdue Q1/Q2 reporting increase near-term risk. Active monitoring required."
         };
     }
   };
@@ -62,7 +62,7 @@ export const LoanHealthScoreCard = ({ consultationId }: { consultationId: string
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-bold text-[#1a2256] uppercase tracking-wider">
-              AI Loan Health Score
+              Loan Health Score
             </span>
             <Info className="w-3.5 h-3.5 text-slate-400 cursor-pointer" />
           </div>

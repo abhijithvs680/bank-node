@@ -77,76 +77,88 @@ export interface VitalSignsGraphData {
 // Stateful offline store
 const initialInpatients: Patient[] = [
   {
-    consultationId: "6006",
-    patientId: "P1001",
-    firstName: "Aarav",
-    surName: "Sharma",
-    dateOfBirth: "1984-05-14",
-    age: 42,
-    gender: "M",
-    phoneNumber: "9876543210",
-    bedNumber: "ICU-A3",
-    admissionType: "Emergency",
-    admissionDateTime: "2026-06-15T08:30:00Z",
-    admissionReason: "Acute asthma flare-up with severe respiratory distress",
-    primaryDiagnosis: "Acute Asthma Exacerbation",
-    secondaryDiagnoses: "Chronic allergic rhinitis",
-    allergies: ["Penicillin", "Dust mites"],
+    consultationId: "1001",
+    patientId: "BW201",
+    firstName: "ORION MANUFACTURING",
+    surName: "HOLDINGS LIMITED",
+    dateOfBirth: "2000-01-01",
+    age: 0,
+    gender: "N/A",
+    phoneNumber: "",
+    bedNumber: "N/A",
+    admissionType: "3rd Party Mandate",
+    admissionDateTime: "2026-05-15T10:02:00Z",
+    admissionReason: "Post Financial Close — Active deal monitoring",
+    primaryDiagnosis: "Post Financial",
+    secondaryDiagnoses: "African Region | ZAR | 0–1 bn",
+    allergies: [],
     currentMedications: [],
-    assignedPhysician: "Dr. Rajesh Koothrappali",
-    doctorName: "Dr. Rajesh Koothrappali",
-    doctorDepartment: "Pulmonology",
-    doctorSpecialization: "Pulmonology",
-    doctorEmail: "rajesh@sbsa.com",
-    dutyDoctorNetworkName: "Dr. Rajesh Koothrappali",
+    assignedPhysician: "Pratheesh K P",
+    doctorName: "Pratheesh K P",
+    doctorDepartment: "Corporate Lending",
+    doctorSpecialization: "Corporate Lending",
+    doctorEmail: "pratheesh@goodbank.com",
+    dutyDoctorNetworkName: "Pratheesh K P",
     dutyDoctorNetworkGdid: "D001",
     primaryConsultantNetworkGdid: "D001",
-    dutyNurseNetworkName: "Nurse Clara",
+    dutyNurseNetworkName: "Tmu1",
     dutyNurseNetworkGdid: "N001",
-    assignedNurse: "Nurse Clara",
-    insuranceInfo: { provider: "Aetna", policyNumber: "AET-90921" },
+    assignedNurse: "Tmu1",
+    insuranceInfo: { provider: "", policyNumber: "" },
     vitalSigns: {
-      heartRate: 98,
-      bloodPressureSystolic: 135,
-      bloodPressureDiastolic: 85,
-      respiratoryRate: 24,
-      oxygenSaturation: 92,
-      temperature: 98.6,
-      glasgowComaScale: 15,
-      painLevel: 3,
-      consciousnessLevel: "Alert",
-      bloodGlucose: 110,
-      recordedTime: "2026-06-16T12:00:00Z"
+      heartRate: 0,
+      bloodPressureSystolic: 0,
+      bloodPressureDiastolic: 0,
+      respiratoryRate: 0,
+      oxygenSaturation: 0,
+      temperature: 0,
+      glasgowComaScale: 0,
+      painLevel: 0,
+      consciousnessLevel: "N/A",
+      bloodGlucose: 0,
+      recordedTime: "2026-05-15T10:02:00Z"
     },
     labResults: [],
-    healthStatus: "Critical",
-    alerts: ["Oxygen Saturation < 93%"],
-    lastUpdated: "2026-06-16T12:00:00Z",
+    healthStatus: "Active",
+    alerts: ["Leverage ratio exceedance (BR-1005)", "Failure to provide management accounts (BR-1008)"],
+    lastUpdated: "2026-05-15T10:02:00Z",
     appointmentId: "A1001",
-    scheduledDoctorName: "Dr. Rajesh Koothrappali",
-    scheduledDate: "2026-06-15",
-    scheduledTime: "08:30",
-    appointmentStatus: "Pending",
+    scheduledDoctorName: "Pratheesh K P",
+    scheduledDate: "2026-05-15",
+    scheduledTime: "10:02",
+    appointmentStatus: "Active",
     consultationType: "Inpatient",
-    symptoms: "Shortness of breath, wheezing, tight chest",
-    duration: "2 days",
-    medicalHistory: "Asthmatic since childhood. Hospitalized once last year.",
-    purposeOfVisit: "Severe asthma exacerbation",
-    severity: "High",
-    urgentConcerns: "Low SpO2 on room air",
-    consultationStatus: "Pending",
-    createdOn: "2026-06-15T08:30:00Z",
-    createdBy: "admin@gmail.com",
+    symptoms: "Active breaches: Leverage ratio exceedance (BR-1005) and failure to provide management accounts (BR-1008). Q1 and Q2 2026 Financial Statements and Compliance Certificates pending. Security Asset Valuation overdue since 15 Jun 2026.",
+    duration: "Post Financial",
+    medicalHistory: "Full Rollovers: Jan 2025 (ZAR 12.5M), Jul 2025 (ZAR 13.4M), Sep 2025 (ZAR 14.75M), Jun 2026 (ZAR 17M). Partial Rollover: Mar 2026 (ZAR 5.5M). Various principal, interest, and fee payments completed Feb 2025–Jan 2026.",
+    purposeOfVisit: "Post Financial Close monitoring and covenant compliance",
+    severity: "Medium",
+    urgentConcerns: "Leverage ratio exceedance (BR-1005) open. Q1 & Q2 2026 financials pending. Security Asset Valuation overdue since 15 Jun 2026.",
+    consultationStatus: "Active",
+    createdOn: "2026-05-15T10:02:00Z",
+    createdBy: "admin@goodbank.com",
     doctorId: "D001",
-    allergy: "Penicillin, Dust mites",
-    comorbidity: "None",
-    chiefComplaint: "Severe wheezing and dyspnea",
-    currentMedication: "Albuterol inhaler as needed",
-    familySocialHistory: "Father had mild asthma. Non-smoker.",
-    notes: "Patient admitted via ER. Oxygen started at 2L/min via nasal cannula. Nebulized with Albuterol and Ipratropium.",
+    allergy: "Leverage ratio exceedance (BR-1005), DSCR covenant breach, Interest payment delays",
+    comorbidity: "Missing management accounts (BR-1008), Q1 & Q2 2026 financials overdue, Security Asset Valuation overdue",
+    chiefComplaint: "Open breach: leverage ratio exceedance (BR-1005). Open breach: failure to provide management accounts (BR-1008). Resolved: DSCR breach, interest payment delays, insurance certificate expiry.",
+    currentMedication: "ZAR 350,000,000",
+    familySocialHistory: "African Region | Currency: ZAR | Deal Size: 0–1 bn | Jurisdiction: African Region. Borrower KYC (BW201): Approved — next review 1 Oct 2026. First Capital Bank (LN045): Approved. Zenith (LN046): Invalid. Orion Industrial (LN047): Invalid.",
+    dealName: "ORION MANUFACTURING HOLDINGS LIMITED",
+    dealId: "1001",
+    dealStatus: "Post Financial",
+    dealCreatedOn: "15 May 2026 10:02",
+    dealType: "3rd Party Mandate",
+    borrower: "ORION MANUFACTURING HOLDINGS LIMITED",
+    lenders: "First Capital Bank (LN045), Zenith Industrial Holdings Limited (LN046), Orion Industrial Holdings Limited (LN047)",
+    arranger: "Agency",
+    primaryTmu: "Tmu1",
+    primaryFo: "Pratheesh K P",
+    notes: "Borrower KYC (BW201): Approved — next review 1 Oct 2026. First Capital Bank (LN045): Approved — next review 21 Oct 2026. Orion Industrial Holdings Ltd (LN047): Invalid — next review 23 Mar 2027. Zenith Industrial Holdings Ltd (LN046): Invalid — next review 23 Dec 2027.",
     customCategories: JSON.stringify([
-      { name: "Surgical History", field: "SurgicalHistory", value: "None" },
-      { name: "Social Habits", field: "SocialHabits", value: "Exercises twice a week" }
+      { name: "Jurisdiction", field: "jurisdiction", value: "African Region" },
+      { name: "Currency", field: "currency", value: "ZAR" },
+      { name: "Deal Size", field: "dealSize", value: "0–1 bn" },
+      { name: "Borrower Account ID", field: "borrowerAccountId", value: "BW201" }
     ])
   },
   {
@@ -522,7 +534,7 @@ class ApiServiceState {
   constructor() {
     // Seed state
     const dealDetailsMap: Record<string, Partial<Patient>> = {
-      "6006": {
+      "1001": {
         dealName: "ORION MANUFACTURING HOLDINGS LIMITED",
         dealId: "#AG261070",
         borrower: "ORION MANUFACTURING HOLDINGS LIMITED",
@@ -626,7 +638,7 @@ class ApiServiceState {
     });
 
     // Seed some initial prescriptions
-    this.prescriptions.set("6006", [
+    this.prescriptions.set("1001", [
       {
         id: "pr1",
         name: "Albuterol Inhaler",
@@ -691,7 +703,7 @@ class ApiServiceState {
     ]);
 
     // Seed some initial notes
-    this.notes.set("6006", [
+    this.notes.set("1001", [
       {
         id: "n1",
         staff: "Dr. Rajesh Koothrappali",
@@ -942,7 +954,7 @@ class ApiService {
 
   // Legacy wrapper for getPatientByConsultationId (uses getConsultationData)
   async getPatientByConsultationId(consultationId?: string, patientType?: 'inpatient' | 'outpatient'): Promise<Patient[]> {
-    return this.getConsultationData({ consultationId: consultationId || '6006', patientType });
+    return this.getConsultationData({ consultationId: consultationId || '1001', patientType });
   }
 
   // ==================== UPDATE ALLERGIES AND COMORBIDITIES ====================

@@ -1,17 +1,10 @@
-export type PatientFlowType = 'inpatient' | 'outpatient';
+export type PatientFlowType = 'inpatient';
 
-export const getPatientListPath = (type: PatientFlowType): string =>
-  type === 'inpatient' ? '/inpatient' : '/patients';
+export const getPatientListPath = (type: PatientFlowType): string => '/corporate-deals';
 
 export const getPatientDetailsPath = (
   consultationId: string,
   type: PatientFlowType,
-): string =>
-  type === 'inpatient'
-    ? `/ip-details/${consultationId}`
-    : `/consultationId/${consultationId}`;
+): string => `/deals/${consultationId}`;
 
-export const getPatientTypeFromPath = (pathname: string): PatientFlowType =>
-  pathname.startsWith('/inpatient') || pathname.startsWith('/ip-details')
-    ? 'inpatient'
-    : 'outpatient';
+export const getPatientTypeFromPath = (pathname: string): PatientFlowType => 'inpatient';

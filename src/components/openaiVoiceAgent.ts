@@ -92,208 +92,8 @@ function sendFunctionCallOutput(callId: string, output: any) {
 
 // Setup completion event listeners
 function setupCompletionListeners() {
-  // Medicine selection completion (from overlay) - receives FULL API data
-  document.addEventListener('medicine-selection-complete', (event: any) => {
-    const { callId, success, medicine, originalQuery, apiData, error } = event.detail;
-
-    // Check for unified lookupMedicine function call
-    const lookupMedicineCallId = pendingFunctionCalls.get('lookupMedicine');
-
-    const matchedCallId = callId && (
-      pendingFunctionCalls.has(callId) ||
-      lookupMedicineCallId === callId
-    );
-
-    if (matchedCallId) {
-      if (success && apiData) {
-        // Build a rich response message for the AI based on actual API data
-        let message = `Medicine: ${medicine}`;
-
-        if (apiData.stock !== undefined) {
-          message += `\nStock: ${apiData.stock} units ${apiData.stock > 0 ? '(In Stock)' : '(Out of Stock)'}`;
-        }
-        if (apiData.mrp !== undefined) {
-          message += `\nMRP: ₹${apiData.mrp.toFixed(2)}`;
-        }
-        if (apiData.composition) {
-          message += `\nComposition: ${apiData.composition}`;
-        }
-        if (apiData.alternatives && apiData.alternatives.length > 0) {
-          message += `\nAlternatives available: ${apiData.alternatives.map((a: any) => `${a.name} (Stock: ${a.stock}, ₹${a.mrp})`).join(', ')}`;
-        }
-
-        sendFunctionCallOutput(callId, {
-          success: true,
-          selectedMedicine: medicine,
-          originalQuery: originalQuery,
-          stock: apiData.stock,
-          mrp: apiData.mrp,
-          composition: apiData.composition,
-          inStock: apiData.inStock,
-          alternatives: apiData.alternatives,
-          message: message
-        });
-      } else {
-        // Handle error case
-        sendFunctionCallOutput(callId, {
-          success: false,
-          selectedMedicine: medicine,
-          originalQuery: originalQuery,
-          message: error || `Failed to fetch details for ${medicine}`
-        });
-      }
-
-      // Clean up
-      pendingFunctionCalls.delete('lookupMedicine');
-      pendingFunctionCalls.delete(callId);
-    }
-  });
-
-  // Note completion
-  document.addEventListener('ai-note-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('addMedicalNote');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Medical note added successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('addMedicalNote');
-    }
-  });
-
-  // Medication completion
-  document.addEventListener('ai-medication-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('addMedication');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Medication added successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('addMedication');
-    }
-  });
-
-  // Vitals completion
-  document.addEventListener('ai-vitals-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('recordVitals');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Vitals recorded successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('recordVitals');
-    }
-  });
-
-  // Lab result completion
-  document.addEventListener('ai-lab-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('addLabResult');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Lab result added successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('addLabResult');
-    }
-  });
-
-  // Medication update completion
-  document.addEventListener('ai-medication-update-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('updateMedicationStatus');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Medication status updated successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('updateMedicationStatus');
-    }
-  });
-
-  // Discharge note completion
-  document.addEventListener('ai-discharge-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('addDischargeNote');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Discharge note added successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('addDischargeNote');
-    }
-  });
-  
-  // Visit Information completion
-  document.addEventListener('ai-visit-information-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('updateVisitInformation');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Visit information updated successfully",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('updateVisitInformation');
-    }
-  });
-
-
-
-  // Pharmacy-specific completion listeners
-  // Unified medicine lookup completion listener
-  document.addEventListener('ai-medicine-lookup-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('lookupMedicine');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Medicine lookup completed",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('lookupMedicine');
-    }
-  });
-
-
-  document.addEventListener('ai-low-stock-alert-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('getLowStockAlert');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Low stock alert generated",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('getLowStockAlert');
-    }
-  });
-
-  // Doctor Assistant completion listeners
-  document.addEventListener('doctor-assistant-update-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('update_clinical_data');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Clinical data updated",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('update_clinical_data');
-    }
-  });
-
-  document.addEventListener('doctor-assistant-transcript-completed', (event: any) => {
-    const callId = pendingFunctionCalls.get('add_transcript');
-    if (callId) {
-      sendFunctionCallOutput(callId, {
-        success: true,
-        message: "Transcript added",
-        data: event.detail
-      });
-      pendingFunctionCalls.delete('add_transcript');
-    }
-  });
-
+  // Bank app: query_table responses are handled directly via sendGeminiFunctionCallOutput
+  // No additional completion listeners needed
 }
 async function setupVAD(stream: MediaStream) {
   const audioCtx = new AudioContext();
@@ -408,9 +208,8 @@ export async function startVoiceAgent({
         }
         console.log(JSON.stringify(msg));
 
-        // Mute AI when a relevant tool call is triggered (exclude scribe tools)
-        const scribeTools = ['update_clinical_data', 'add_transcript'];
-        if (msg.name && !scribeTools.includes(msg.name)) {
+        // Pause AI when a tool call is triggered
+        if (msg.name) {
           pauseAI();
         }
 
@@ -422,156 +221,10 @@ export async function startVoiceAgent({
         try {
           const aiData = JSON.parse(msg.arguments);
 
-          if (msg.name == "addMedicalNote") {
-            const event = new CustomEvent('ai-note-requested', {
+          if (msg.name == "query_table") {
+            const event = new CustomEvent('ai-query-table-requested', {
               detail: {
-                note: aiData.note,
-                findingType: aiData.findingType,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          else if (msg.name == "addMedication") {
-            const event = new CustomEvent('ai-medication-requested', {
-              detail: {
-                medicationName: aiData.medicationName,
-                dosage: aiData.dosage,
-                frequency: aiData.frequency,
-                route: aiData.route,
-                prescribedBy: aiData.prescribedBy,
-                instructions: aiData.instructions,
-                callId: msg.call_id,
-                numberOfDays: aiData.numberOfDays,
-                foodTiming: aiData.foodTiming
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          else if (msg.name == "recordVitals") {
-            const event = new CustomEvent('ai-vitals-requested', {
-              detail: {
-                heartRate: aiData.heartRate,
-                bloodPressureSystolic: aiData.bloodPressureSystolic,
-                bloodPressureDiastolic: aiData.bloodPressureDiastolic,
-                temperature: aiData.temperature,
-                oxygenSaturation: aiData.oxygenSaturation,
-                respiratoryRate: aiData.respiratoryRate,
-                painLevel: aiData.painLevel,
-                bloodGlucose: aiData.bloodGlucose,
-                glasgowComaScale: aiData.glasgowComaScale,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          else if (msg.name == "addLabResult") {
-            const event = new CustomEvent('ai-lab-requested', {
-              detail: {
-                testName: aiData.testName,
-                value: aiData.value,
-                unit: aiData.unit,
-                normalRange: aiData.normalRange,
-                status: aiData.status,
-                orderedBy: aiData.orderedBy,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          else if (msg.name == "updateMedicationStatus") {
-            const event = new CustomEvent('ai-medication-update-requested', {
-              detail: {
-                medicationName: aiData.medicationName,
-                newStatus: aiData.newStatus,
-                reason: aiData.reason,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          else if (msg.name == "addDischargeNote") {
-            const event = new CustomEvent('ai-discharge-note-requested', {
-              detail: {
-                dischargeStatus: aiData.dischargeStatus,
-                instructions: aiData.instructions,
-                followUpPlan: aiData.followUpPlan,
-                medications: aiData.medications,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-          
-          else if (msg.name == "updateVisitInformation") {
-            const event = new CustomEvent('ai-visit-information-requested', {
-              detail: {
-                chiefComplaint: aiData.chiefComplaint,
-                symptoms: aiData.symptoms,
-                duration: aiData.duration,
-                medicalHistory: aiData.medicalHistory,
-                purposeOfVisit: aiData.purposeOfVisit,
-                urgentConcerns: aiData.urgentConcerns,
-                familySocialHistory: aiData.familySocialHistory,
-                allergy: aiData.allergy,
-                comorbidity: aiData.comorbidity,
-                customFields: aiData.customFields,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-
-
-          // Unified medicine lookup function call
-          else if (msg.name == "lookupMedicine") {
-            // Dispatch unified event for medicine lookup (search, stock check, details)
-            const event = new CustomEvent('ai-medicine-lookup-requested', {
-              detail: {
-                medicineName: aiData.medicineName,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-            // Don't send feedback yet - wait for user selection from overlay
-          }
-
-          else if (msg.name == "getLowStockAlert") {
-            const event = new CustomEvent('ai-low-stock-alert-requested', {
-              detail: {
-                searchQuery: aiData.searchQuery,
-                category: aiData.category,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          // Doctor Assistant tool calls
-          else if (msg.name == "update_clinical_data") {
-            const event = new CustomEvent('doctor-assistant-update-requested', {
-              detail: {
-                field: aiData.field,
-                value: aiData.value,
-                allergyReaction: aiData.allergyReaction,
-                medicationDose: aiData.medicationDose,
-                callId: msg.call_id
-              }
-            });
-            document.dispatchEvent(event);
-          }
-
-          else if (msg.name == "add_transcript") {
-            const event = new CustomEvent('doctor-assistant-transcript-requested', {
-              detail: {
-                text: aiData.text,
-                speaker: aiData.speaker,
+                sqlite_query: aiData.sqlite_query,
                 callId: msg.call_id
               }
             });
@@ -886,6 +539,7 @@ export async function startGeminiVoiceAgent(
   ephemeralKey: string,
   systemInstructions: string,
   tools: any[],
+  modelName: string = "models/gemini-2.5-flash-native-audio-preview-12-2025",
   callbacks?: VoiceAgentCallbacks,
   listenOnly: boolean = false
 ): Promise<boolean> {
@@ -900,7 +554,7 @@ export async function startGeminiVoiceAgent(
     console.log("Gemini WebSocket connected.");    // Initial Setup Message
     const setupMessage = {
       setup: {
-        model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
+        model: modelName,
         systemInstruction: {
           parts: [{ text: systemInstructions }]
         },
@@ -923,8 +577,8 @@ export async function startGeminiVoiceAgent(
       audioPlayStartTime = geminiAudioCtx.currentTime;
       geminiStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const source = geminiAudioCtx.createMediaStreamSource(geminiStream);
-      // Reduce buffer size to 2048 to process shorter audio chunks and decrease transcription latency.
-      geminiProcessor = geminiAudioCtx.createScriptProcessor(2048, 1, 1);
+      // Reduce buffer size to 512 to process very short audio chunks and minimize transcription latency.
+      geminiProcessor = geminiAudioCtx.createScriptProcessor(512, 1, 1);
 
       // IMPORTANT: Do NOT connect the processor to destination yet. We must wait for setupComplete to avoid 1011 error.
       // We attach the stream processor logic here, but it only fires if `isSetupComplete` is true.
@@ -943,10 +597,10 @@ export async function startGeminiVoiceAgent(
 
         const msg = {
           realtimeInput: {
-            mediaChunks: [{
+            audio: {
               mimeType: "audio/pcm;rate=16000",
               data: base64Audio
-            }]
+            }
           }
         };
         geminiSocket.send(JSON.stringify(msg));
@@ -955,7 +609,7 @@ export async function startGeminiVoiceAgent(
 
       source.connect(geminiProcessor);
       geminiProcessor.connect(geminiAudioCtx.destination);
-    }, 500);
+    }, 50);
   };
 
   geminiSocket.onmessage = (event) => {
@@ -1028,17 +682,7 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
       const aiData = fn.args || {};
       let eventName = '';
 
-      if (fn.name === "addMedicalNote") eventName = 'ai-note-requested';
-      else if (fn.name === "addMedication") eventName = 'ai-medication-requested';
-      else if (fn.name === "recordVitals") eventName = 'ai-vitals-requested';
-      else if (fn.name === "addLabResult") eventName = 'ai-lab-requested';
-      else if (fn.name === "updateMedicationStatus") eventName = 'ai-medication-update-requested';
-      else if (fn.name === "addDischargeNote") eventName = 'ai-discharge-note-requested';
-      else if (fn.name === "lookupMedicine") eventName = 'ai-medicine-lookup-requested';
-      else if (fn.name === "getLowStockAlert") eventName = 'ai-low-stock-alert-requested';
-      else if (fn.name === "update_clinical_data") eventName = 'doctor-assistant-update-requested';
-      else if (fn.name === "add_transcript") eventName = 'doctor-assistant-transcript-requested';
-      else if (fn.name === "updateVisitInformation") eventName = 'ai-visit-information-requested';
+      if (fn.name === "query_table") eventName = 'ai-query-table-requested';
 
       if (eventName) {
         // Construct the expected payload exactly as the OpenAI implementation did
@@ -1051,8 +695,8 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
         const e = new CustomEvent(eventName, { detail: payload });
         document.dispatchEvent(e);
 
-        // Immediately respond to Gemini so it doesnt hang
-        if (geminiSocket && geminiSocket.readyState === WebSocket.OPEN) {
+        // Immediately respond to Gemini so it doesnt hang (except for query_table which needs async data)
+        if (fn.name !== "query_table" && geminiSocket && geminiSocket.readyState === WebSocket.OPEN) {
           geminiSocket.send(JSON.stringify({
             toolResponse: {
               functionResponses: [
@@ -1068,6 +712,24 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
       }
     }
   }
+}
+
+export function sendGeminiFunctionCallOutput(callId: string, name: string, output: any) {
+  if (!geminiSocket || geminiSocket.readyState !== WebSocket.OPEN) return;
+  
+  const responseMsg = {
+    toolResponse: {
+      functionResponses: [
+        {
+          id: callId,
+          name: name,
+          response: output
+        }
+      ]
+    }
+  };
+  console.log("Sending Gemini function call output:", responseMsg);
+  geminiSocket.send(JSON.stringify(responseMsg));
 }
 
 export function stopGeminiVoiceAgent() {

@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: 'Login Successful',
         description: `Welcome back, ${userData.firstName}!`,
       });
-      navigate('/inpatient');
+      navigate('/corporate-deals');
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: 'Login Successful',
         description: `Welcome, ${userData.firstName}!`,
       });
-      navigate('/inpatient');
+      navigate('/corporate-deals');
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: 'Login Successful',
         description: `Welcome, ${userData.firstName}!`,
       });
-      navigate('/inpatient');
+      navigate('/corporate-deals');
     } catch (error: any) {
       toast({
         title: 'URL Token Authentication Failed',
