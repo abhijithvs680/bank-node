@@ -142,7 +142,7 @@ const DealDetailsPage = () => {
     setActiveDocumentChat({ fileId, fileName, sessionId: newSessionId });
     setQuerySessionId(newSessionId);
     setChatMessages([
-      { role: 'assistant', text: `Hi! Ask me anything about the document: ${fileName}` },
+      { role: 'assistant', text: `Hi! How can I assist you with the document: ${fileName}?` },
     ]);
     setIsQueryChatOpen(true);
     
