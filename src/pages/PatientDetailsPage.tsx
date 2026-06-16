@@ -10,9 +10,10 @@ import { CurrentVitalSigns } from "@/components/CurrentVitalSigns";
 import { FacilityAndLoans } from "@/components/FacilityAndLoans";
 import { VitalSignsTrend } from "@/components/VitalSignsTrend";
 import { useToast } from "@/hooks/use-toast";
-import { Medications } from "@/components/Medications";
+import { LoanHealthScoreCard } from "@/components/LoanHealthScoreCard";
+import { EarlyWarningSignalsCard } from "@/components/EarlyWarningSignalsCard";
 import { RecentResults } from "@/components/RecentResults";
-import { Lab } from "@/components/Lab";
+import { DisbursementChangesCard } from "@/components/DisbursementChangesCard";
 import { NotesAndObservations } from "@/components/NotesAndObservations";
 import { AddVitalsModal } from "@/components/AddVitalsModal";
 import { AddMedicationModal } from "@/components/AddMedicationModal";
@@ -1482,43 +1483,6 @@ const PatientDetailsPage = () => {
   }
   const patient = patientData[0];
 
-  const ambientModeWidget = (
-    <div className="bg-white rounded-[20px] overflow-hidden">
-      <div className="px-2 pb-2 pt-2">
-        <DoctorAssistantWidget
-          isListening={isDoctorAssistantListening}
-          isConnecting={isDoctorAssistantConnecting}
-          isPaused={isDoctorAssistantPaused}
-          clinicalData={clinicalData}
-          conversationHistory={conversationHistory}
-          hasRecordedData={hasDoctorAssistantRecordedData}
-          onStartListening={() => {
-            const visitInfo = patientData[0] ? buildVisitInfoFromPatient(patientData[0]) : undefined;
-            if (visitInfo) setDoctorAssistantVisitInfo(visitInfo);
-            startDoctorAssistant(assistantSettings, consultationId, visitInfo);
-          }}
-          onStopListening={stopDoctorAssistant}
-          onTogglePause={toggleDoctorAssistantPause}
-          onUpdateClinicalData={setDoctorAssistantClinicalData}
-          onClearData={clearDoctorAssistantData}
-          isExtracting={isDoctorAssistantExtracting}
-          streamingResponse={doctorAssistantStreamingResponse}
-          hasReceivedFinalResponse={doctorAssistantHasReceivedFinalResponse}
-          patientStreamingText={doctorAssistantPatientStreamingText}
-          admissionId={consultationId || ''}
-          visitInfo={patientData[0] ? buildVisitInfoFromPatient(patientData[0]) : undefined}
-          doctorId={assignedDoctor.id || dutyDoctor.id || ''}
-          doctorName={assignedDoctor.name || dutyDoctor.name || patientData[0]?.assignedPhysician || ''}
-          medications={medications}
-          labOrders={pdfLabOrders}
-          assistantSettings={assistantSettings}
-          onSaveAssistantSettings={handleSaveAssistantSettings}
-          isInpatient={patientType === 'inpatient'}
-        />
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#ebeef9]">
       {/* Header - Gradient Theme */}
@@ -1557,105 +1521,15 @@ const PatientDetailsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {/* Query Deals button + dropdown chat panel */}
-            <div className="relative" ref={queryBtnRef}>
-              <button
-                id="query-deals-btn"
-                onClick={() => setIsQueryChatOpen(prev => !prev)}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] hover:from-[#0284c7] hover:to-[#0ea5e9] text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(14,165,233,0.35)] hover:shadow-[0_6px_22px_rgba(14,165,233,0.5)] transition-all duration-200 active:scale-95"
-              >
-                <MessageSquareText className="w-4 h-4" />
-                <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Query Deals</span>
-              </button>
-
-              {/* ── Slide-down chat panel (fixed to escape header overflow-hidden) ── */}
-              <style>{`
-                @keyframes qd-slide {
-                  from { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
-                  to   { opacity: 1; transform: translateY(0)   scaleY(1); }
-                }
-                .qd-panel {
-                  transform-origin: top right;
-                  animation: qd-slide 0.22s cubic-bezier(0.16,1,0.3,1);
-                }
-              `}</style>
-
-               {isQueryChatOpen && (
-                <div
-                  className="qd-panel fixed top-[92px] right-6 md:right-12 lg:right-16 z-[9999] w-[520px] rounded-[18px] border border-sky-200/60 bg-white shadow-[0_20px_60px_rgba(14,165,233,0.18),0_4px_20px_rgba(0,0,0,0.12)] overflow-hidden"
-                >
-
-                  {/* Header */}
-                  <div className="flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8]">
-                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                      <MessageSquareText className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[0.94rem] font-bold text-white">Query Deals</p>
-                    </div>
-                    <button
-                      onClick={() => setIsQueryChatOpen(false)}
-                      className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
-                    >
-                      <XIcon className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
-
-                  {/* Messages */}
-                  <div className="h-[560px] overflow-y-auto px-5 py-4 space-y-3 bg-[#f8fbff]">
-                    {chatMessages.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        {msg.role === 'assistant' && (
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center mr-2 flex-shrink-0 mt-0.5 shadow-sm">
-                            <MessageSquareText className="w-3.5 h-3.5 text-white" />
-                          </div>
-                        )}
-                        <div
-                          className={`max-w-[78%] px-4 py-2.5 rounded-[16px] text-[0.84rem] leading-relaxed ${msg.role === 'user'
-                            ? 'bg-gradient-to-br from-[#0284c7] to-[#38bdf8] text-white rounded-br-[4px] shadow-sm'
-                            : 'bg-white border border-[#dde9f8] text-[#1a2256] rounded-bl-[4px] shadow-sm'
-                            }`}
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    ))}
-                    {chatLoading && (
-                      <div className="flex justify-start items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center shadow-sm">
-                          <MessageSquareText className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <div className="bg-white border border-[#dde9f8] rounded-[16px] rounded-bl-[4px] px-4 py-2.5 shadow-sm flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                      </div>
-                    )}
-                    <div ref={chatEndRef} />
-                  </div>
-
-                  {/* Input */}
-                  <div className="px-5 py-3.5 border-t border-sky-100 bg-white flex items-center gap-2.5">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
-                      placeholder="Ask about a deal, clause, covenant…"
-                      className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15 transition-all placeholder:text-[#a0b8cc]"
-                    />
-                    <button
-                      onClick={sendChatMessage}
-                      disabled={!chatInput.trim() || chatLoading}
-                      className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Query Deals button */}
+            <button
+              id="query-deals-btn"
+              onClick={() => setIsQueryChatOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] hover:from-[#0284c7] hover:to-[#0ea5e9] text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(14,165,233,0.35)] hover:shadow-[0_6px_22px_rgba(14,165,233,0.5)] transition-all duration-200 active:scale-95"
+            >
+              <MessageSquareText className="w-4 h-4" />
+              <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Query Deals</span>
+            </button>
 
             <VoiceRecorder
               admissionId={consultationId || ''}
@@ -1930,29 +1804,14 @@ const PatientDetailsPage = () => {
               />
             )}
 
-            {patientType !== 'inpatient' && ambientModeWidget}
+            {/* Loan Health Score Card */}
+            <LoanHealthScoreCard consultationId={consultationId || ''} />
 
-            {/* Medications */}
-            <Medications
-              onAddMedication={() => setShowAddMedication(true)}
-              onEditMedication={handleEditMedication}
-              admissionId={consultationId}
-              medications={medications}
-              loading={loading}
-              setMedications={setMedications}
-              indentUrl={`${API_BASE}/tiny.url/ls/liveapps.view/gdrouting68fb1b92f3f43/consultationid/${consultationId}/?user_token=${authService.getToken()}&redirectpage=1`}
-              isInpatient={patientType === 'inpatient'}
-            />
+            {/* Early Warning Signals Card */}
+            <EarlyWarningSignalsCard consultationId={consultationId || ''} />
 
-            {/* Lab Orders */}
-            <Lab
-              onAddLabResult={() => setShowAddLabResult(true)}
-              admissionId={consultationId}
-              onRefreshRef={handleLabRefresh}
-              onLabResultUpdated={handleLabResultsAdded}
-            />
-
-            {patientType === 'inpatient' && ambientModeWidget}
+            {/* What's Changed Since Last Disbursement Card */}
+            <DisbursementChangesCard consultationId={consultationId || ''} />
           </div>
         </div>
       </main>
@@ -2153,7 +2012,87 @@ const PatientDetailsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div >
+
+      {/* Query Deals Dialog */}
+      <Dialog open={isQueryChatOpen} onOpenChange={setIsQueryChatOpen}>
+        <DialogContent className="max-w-[520px] w-full p-0 gap-0 overflow-hidden rounded-[18px] border-sky-200/60 bg-[#f8fbff] shadow-2xl [&>button]:text-white z-[9999]">
+          {/* Header */}
+          <div className="flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] shrink-0">
+            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+              <MessageSquareText className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[0.94rem] font-bold text-white">Query Deals</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="h-[460px] overflow-y-auto px-5 py-4 space-y-3 bg-[#f8fbff] medical-scroll">
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.role === 'assistant' && (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center mr-2 flex-shrink-0 mt-0.5 shadow-sm">
+                    <MessageSquareText className="w-3.5 h-3.5 text-white" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[78%] px-4 py-2.5 rounded-[16px] text-[0.84rem] leading-relaxed ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-to-br from-[#0284c7] to-[#38bdf8] text-white rounded-br-[4px] shadow-sm'
+                      : 'bg-white border border-[#dde9f8] text-[#1a2256] rounded-bl-[4px] shadow-sm'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center shadow-sm">
+                  <MessageSquareText className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div className="bg-white border border-[#dde9f8] rounded-[16px] rounded-bl-[4px] px-4 py-2.5 shadow-sm flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="px-5 py-3.5 border-t border-sky-100 bg-white flex items-center gap-2.5 shrink-0">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+              placeholder="Ask about a deal, clause, covenant…"
+              className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15 transition-all placeholder:text-[#a0b8cc]"
+            />
+            <button
+              onClick={sendChatMessage}
+              disabled={!chatInput.trim() || chatLoading}
+              className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0284c7] to-[#38bdf8] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ask AI Floating Action Button (FAB) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50]">
+        <button
+          onClick={() => setIsQueryChatOpen(true)}
+          className="flex items-center gap-2.5 bg-gradient-to-r from-[#1a2256] to-[#64549f] hover:from-[#151b44] hover:to-[#53448a] text-white rounded-full px-6 py-3.5 shadow-[0_10px_25px_rgba(26,34,86,0.35)] hover:shadow-[0_14px_35px_rgba(26,34,86,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95 font-semibold text-[14px] font-['Inter'] tracking-wide"
+        >
+          <BrainCircuit className="w-4 h-4 text-white/90 animate-pulse" />
+          <span>Ask AI</span>
+        </button>
+      </div>
+    </div>
   );
 };
 

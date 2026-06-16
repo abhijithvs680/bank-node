@@ -573,3 +573,25 @@
 .font-\[\'Inter\'\] {
   font-family: 'Inter', system-ui, sans-serif !important;
 }
+
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-btn-gradient {
+  background: linear-gradient(270deg, #7c3aed, #4f46e5, #2563eb, #06b6d4) !important;
+  background-size: 400% 400% !important;
+  animation: gradient-flow 6s ease infinite !important;
+}
+
+@keyframes text-color-change {
+  0%, 100% { color: #ffffff; text-shadow: 0 0 1px rgba(255, 255, 255, 0.4); }
+  33% { color: #e0f2fe; text-shadow: 0 0 2px rgba(224, 242, 254, 0.6); }
+  66% { color: #f5f3ff; text-shadow: 0 0 2px rgba(245, 243, 255, 0.6); }
+}
+
+.animate-text-glow {
+  animation: text-color-change 3s ease-in-out infinite !important;
+}

@@ -29,36 +29,21 @@ const PatientSection = ({ title, patients, viewMode, bgColor, borderColor, badge
 
   return (
     <div className="mb-10">
-      <div className="flex items-center gap-3 mb-6">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgColor} border ${borderColor} shadow-sm`}>
-          {icon}
-        </div>
-        <div className="flex flex-col text-left">
-          <div className="flex items-center gap-3">
-            <h3 className="text-[18px] font-semibold text-[#1a2256]">{title}</h3>
-            <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-semibold ${badgeColor} border border-current/10`}>
-              {patients.length} Deal{patients.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <p className="text-[13px] text-[#1a2256]/50 font-medium">Capture and overview recent activity</p>
-        </div>
-      </div>
 
       {viewMode === 'tile' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
           {patients.map((patient) => (
             <PatientCardIp key={patient.consultationId} patient={patient} patientType="inpatient" />
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5 animate-in fade-in duration-300">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[1.5fr,1fr,2fr,1.2fr,1fr,0.8fr,1.5fr] gap-4 px-6 py-3 bg-[#1a2256]/[0.02] border-b border-[#1a2256]/10 mb-2">
-            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Deal Name</span>
-            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Deal ID</span>
+          <div className="hidden md:grid grid-cols-[2.5fr,1.8fr,1.2fr,1.2fr,1fr,1.3fr] gap-4 px-6 py-3 bg-[#1a2256]/[0.02] border-b border-[#1a2256]/10 mb-1.5">
+            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Deal Info</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Borrower</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Arranger</span>
-            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Jurisdiction</span>
+            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Risk Score</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Currency</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left md:text-right">Status</span>
           </div>
@@ -78,8 +63,8 @@ const PatientListPageIp = () => {
   const { appName, logoUrl } = useBranding();
   const [searchTerm, setSearchTerm] = useState("");
   const [jurisdictionFilter, setJurisdictionFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<'tile' | 'list'>('list');
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -129,11 +114,7 @@ const PatientListPageIp = () => {
       jurisdictionFilter === "all" ||
       (patient.jurisdiction || "").toLowerCase() === jurisdictionFilter.toLowerCase();
 
-    const matchesStatus =
-      statusFilter === "all" ||
-      (patient.dealStatus || "").toLowerCase() === statusFilter.toLowerCase();
-
-    return matchesSearch && matchesJurisdiction && matchesStatus;
+    return matchesSearch && matchesJurisdiction;
   });
 
   // Group patients by status
@@ -208,18 +189,6 @@ const PatientListPageIp = () => {
                 <option value="US">Jurisdiction: US</option>
                 <option value="EU">Jurisdiction: EU</option>
               </select>
-
-              <div className="h-6 w-[1px] bg-[#1a2256]/10 mx-1" />
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-full px-2 text-[14px] font-semibold bg-transparent text-[#1a2256] focus:outline-none cursor-pointer"
-              >
-                <option value="all">Status: All</option>
-                <option value="pre financial close">Pre Financial Close</option>
-                <option value="completed">Completed</option>
-              </select>
             </div>
           </div>
         </div>
@@ -240,22 +209,11 @@ const PatientListPageIp = () => {
             {/* Main Content Area */}
             <div className="w-full">
               <section>
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mb-6">
                   <div className="flex items-center gap-4 flex-wrap">
                     <h2 className="text-[24px] font-semibold text-[#1a2256]">
                       Deal Listing
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-[#1a2256]/[0.02] border border-[#1a2256]/10 rounded-full text-[13px] font-semibold text-[#1a2256]/60">
-                        {filteredPatients.length} Total
-                      </span>
-                      {getActiveCount(filteredPatients) > 0 && (
-                        <div className="bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full text-[13px] font-semibold flex items-center gap-1.5">
-                          <Flag className="w-3.5 h-3.5 text-blue-500" />
-                          {getActiveCount(filteredPatients)} Pre-Close
-                        </div>
-                      )}
-                    </div>
                   </div>
 
                   {/* View Toggle - Premium Styling */}
@@ -287,27 +245,76 @@ const PatientListPageIp = () => {
                   </div>
                 </div>
 
-                {/* Pending Deals Section */}
-                <PatientSection
-                  title="Active Deals (Pre Financial Close)"
-                  patients={pendingPatients}
-                  viewMode={viewMode}
-                  bgColor="bg-blue-50/50"
-                  borderColor="border-blue-200"
-                  badgeColor="bg-blue-100 text-blue-700"
-                  icon={<Clock className="w-5 h-5 text-blue-600" />}
-                />
+                {/* Tabs Selector Bar */}
+                <div className="flex border-b border-slate-200 mb-6 w-full">
+                  <button
+                    onClick={() => setActiveTab('active')}
+                    className={`pb-3.5 px-6 text-[15px] font-semibold relative transition-all flex items-center gap-2 ${
+                      activeTab === 'active' 
+                        ? 'text-[#1a2256] border-b-2 border-b-[#1a2256]' 
+                        : 'text-slate-400 hover:text-[#1a2256]/70 border-b-2 border-b-transparent'
+                    }`}
+                  >
+                    <Clock className={`w-4 h-4 ${activeTab === 'active' ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span>Active Deals</span>
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                      activeTab === 'active' ? 'bg-[#1a2256]/10 text-[#1a2256]' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {pendingPatients.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('completed')}
+                    className={`pb-3.5 px-6 text-[15px] font-semibold relative transition-all flex items-center gap-2 ${
+                      activeTab === 'completed' 
+                        ? 'text-[#1a2256] border-b-2 border-b-[#1a2256]' 
+                        : 'text-slate-400 hover:text-[#1a2256]/70 border-b-2 border-b-transparent'
+                    }`}
+                  >
+                    <CheckCircle className={`w-4 h-4 ${activeTab === 'completed' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span>Completed Deals</span>
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                      activeTab === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {completedPatients.length}
+                    </span>
+                  </button>
+                </div>
 
-                {/* Completed Deals Section */}
-                <PatientSection
-                  title="Completed Deals"
-                  patients={completedPatients}
-                  viewMode={viewMode}
-                  bgColor="bg-green-50/50"
-                  borderColor="border-green-200"
-                  badgeColor="bg-green-100 text-green-700"
-                  icon={<CheckCircle className="w-5 h-5 text-green-600" />}
-                />
+                {/* Conditional Content Rendering */}
+                {activeTab === 'active' ? (
+                  pendingPatients.length === 0 ? (
+                    <div className="text-center py-16 bg-white border border-[#1a2256]/10 rounded-[24px] text-slate-400 font-medium shadow-sm">
+                      No active deals found.
+                    </div>
+                  ) : (
+                    <PatientSection
+                      title="Active Deals (Pre Financial Close)"
+                      patients={pendingPatients}
+                      viewMode={viewMode}
+                      bgColor="bg-blue-50/50"
+                      borderColor="border-blue-200"
+                      badgeColor="bg-blue-100 text-blue-700"
+                      icon={<Clock className="w-5 h-5 text-blue-600" />}
+                    />
+                  )
+                ) : (
+                  completedPatients.length === 0 ? (
+                    <div className="text-center py-16 bg-white border border-[#1a2256]/10 rounded-[24px] text-slate-400 font-medium shadow-sm">
+                      No completed deals found.
+                    </div>
+                  ) : (
+                    <PatientSection
+                      title="Completed Deals"
+                      patients={completedPatients}
+                      viewMode={viewMode}
+                      bgColor="bg-green-50/50"
+                      borderColor="border-green-200"
+                      badgeColor="bg-green-100 text-green-700"
+                      icon={<CheckCircle className="w-5 h-5 text-green-600" />}
+                    />
+                  )
+                )}
 
                 {filteredPatients.length === 0 && (
                   <div className="text-center py-12 text-slate-400">

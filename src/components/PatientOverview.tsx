@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, User2, Loader2, Stethoscope, Target, AlertCircle, Plus, Edit2, Pill, Activity, FileText, BrainCircuit, Users, Tag, CheckCircle } from 'lucide-react';
+import { AlertTriangle, User2, Loader2, Stethoscope, Target, AlertCircle, Plus, Edit2, Pill, Activity, FileText, BrainCircuit, Users, Tag, CheckCircle, Search } from 'lucide-react';
 import { Patient, VitalSigns } from '@/types/patient';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +58,7 @@ export const PatientOverview = ({
 }: PatientOverviewProps): JSX.Element => {
   const [patient, setPatient] = useState<Patient | null>(null);
   const navigate = useNavigate();
+  const [isScanning, setIsScanning] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editAllergy, setEditAllergy] = useState('');
@@ -410,12 +411,45 @@ export const PatientOverview = ({
           </div>
         );
       case 'borrower': return (
-        <span
-          className="text-[0.94rem] font-semibold text-blue-600 hover:underline cursor-pointer font-['Inter']"
-          onClick={() => navigate(`/borrower/${patient.consultationId}`)}
-        >
-          {patient.borrower || 'ORION MANUFACTURING HOLDINGS LIMITED'}
-        </span>
+        <div className="flex flex-wrap items-center gap-2.5 py-0.5 w-full">
+          <span
+            className="text-[0.94rem] font-semibold text-blue-600 hover:underline cursor-pointer font-['Inter']"
+            onClick={() => navigate(`/borrower/${patient?.consultationId}`)}
+          >
+            {patient?.borrower || 'ORION MANUFACTURING HOLDINGS LIMITED'}
+          </span>
+          <Badge variant="destructive" className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 text-[11px] font-bold py-0.5 px-2 rounded-full whitespace-nowrap shadow-none">
+            2 Risk Factors
+          </Badge>
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsScanning(true);
+              setTimeout(() => {
+                setIsScanning(false);
+                navigate(`/borrower/${patient?.consultationId}`);
+              }, 1500);
+            }}
+            disabled={isScanning}
+            className={`h-[21px] px-2 rounded-md text-[8px] font-extrabold tracking-widest uppercase transition-all shadow-sm flex items-center gap-1 active:scale-95 border-0 ${isScanning
+              ? 'bg-indigo-50 border border-indigo-200 text-indigo-600 cursor-not-allowed animate-pulse shadow-none'
+              : 'animated-btn-gradient text-white'
+              }`}
+          >
+            {isScanning ? (
+              <>
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                <span></span>
+              </>
+            ) : (
+              <>
+                <Search className="w-2.5 h-2.5 text-white" />
+                <span className="animate-text-glow">Scan</span>
+              </>
+            )}
+          </Button>
+        </div>
       );
       case 'arranger': return <span className="text-[0.94rem] font-medium text-[#161616] font-['Inter']">{patient.arranger || 'Anagha KM'}</span>;
       case 'primaryTmu': return <span className="text-[0.94rem] font-medium text-[#161616] font-['Inter']">{patient.primaryTmu || 'Tmu1'}</span>;
@@ -477,20 +511,31 @@ export const PatientOverview = ({
     <div className="bg-white rounded-[20px] overflow-hidden fade-in border border-[#e0e3f5] p-3 pb-3">
       <div className="space-y-0">
         {/* Deal Info Header */}
-        <div className="bg-[#fbfcfd] rounded-t-[20px] p-6 border-b border-[#e0e3f5]">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
-            {/* Column 1: Deal Name, ID */}
+        <div className="bg-[#fbfcfd] rounded-t-[20px] p-6 border-b border-[#e0e3f5] text-left">
+          {/* Deal Name - Full Width */}
+          <div className="mb-5">
+            <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Deal Name</div>
+            <h2 className="text-[22px] font-extrabold text-slate-800 mt-0.5 leading-tight font-['Inter']">
+              {patient.dealName || `${patient.firstName} ${patient.surName}`}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            {/* Column 1: Deal ID & Status */}
             <div className="space-y-4">
               <div>
-                <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Deal Name</div>
-                <div className="text-[18px] font-bold text-slate-800 mt-0.5">
-                  {patient.dealName || `${patient.firstName} ${patient.surName}`}
+                <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Deal Id</div>
+                <div className="text-[15px] font-bold text-slate-800 mt-1.5 font-['Inter']">
+                  {patient.dealId || `#AG${patient.consultationId}`}
                 </div>
               </div>
               <div>
-                <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Deal Id</div>
-                <div className="text-[15px] font-semibold text-black-600 mt-0.5">
-                  {patient.dealId || `#AG${patient.consultationId}`}
+                <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Status</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm inline-block" />
+                  <span className="text-[15px] font-bold text-slate-800">
+                    {patient.dealStatus || "Pre Financial Close"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -511,23 +556,7 @@ export const PatientOverview = ({
               </div>
             </div>
 
-            {/* Column 3: Jurisdiction, Currency */}
-            <div className="space-y-4">
-              <div>
-                <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Jurisdiction</div>
-                <div className="text-[15px] font-medium text-slate-700 mt-0.5">
-                  {patient.jurisdiction || "SA"}
-                </div>
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Currency</div>
-                <div className="text-[15px] font-medium text-slate-700 mt-0.5">
-                  {patient.currency || "ZAR"}
-                </div>
-              </div>
-            </div>
-
-            {/* Column 4: Last Updated, Status, and Action Buttons */}
+            {/* Column 3: Last Updated and Action Buttons */}
             <div className="space-y-4 flex flex-col justify-between items-start md:items-end">
               <div className="w-full text-left md:text-right">
                 <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Last Updated</div>
@@ -536,15 +565,6 @@ export const PatientOverview = ({
                 </div>
               </div>
               <div className="w-full flex flex-col items-start md:items-end gap-3">
-                <div>
-                  <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider md:text-right">Status</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm inline-block" />
-                    <span className="text-[15px] font-bold text-slate-800">
-                      {patient.dealStatus || "Pre Financial Close"}
-                    </span>
-                  </div>
-                </div>
                 {!isInpatient && (
                   <div className="mt-2 flex flex-wrap gap-2 justify-start md:justify-end">
                     <Button variant="outline" onClick={onViewAIInterpretations} className="flex items-center gap-2 h-8 rounded-lg text-[0.94rem] font-medium font-['Inter'] whitespace-nowrap">
