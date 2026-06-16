@@ -6,6 +6,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { RelativeTime } from '@/components/RelativeTime';
 import { Touchable } from '@/components/ui/touchable';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 interface RecentResultsProps {
   onAddLabResult?: () => void;
   admissionId?: string;
@@ -342,7 +344,7 @@ export const RecentResults = ({
 
     const fetchDealFiles = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/deal_files/${admissionId}`);
+        const response = await fetch(`${API_BASE_URL}/deal_files/${admissionId}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch deal files: ${response.statusText}`);
         }
@@ -373,7 +375,7 @@ export const RecentResults = ({
 
   const handleClauseClick = (fileId: string | undefined, pageNumber: number, boundingBoxes?: BoundingBox[]) => {
     if (fileId) {
-      setViewingFileUrl(`http://localhost:8000/download_document?deal_id=${admissionId}&file_id=${fileId}`);
+      setViewingFileUrl(`${API_BASE_URL}/download_document?deal_id=${admissionId}&file_id=${fileId}`);
     }
     setViewingTargetPage(pageNumber);
     setViewingTargetBoxes(boundingBoxes || []);
@@ -414,7 +416,7 @@ export const RecentResults = ({
       formData.append("deal_id", admissionId || 'unknown');
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/analyze_document", {
+      const response = await fetch(`${API_BASE_URL}/analyze_document`, {
         method: "POST",
         body: formData,
       });

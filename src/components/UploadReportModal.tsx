@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/apiService';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 interface UploadReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -91,7 +93,7 @@ export const UploadReportModal = ({ isOpen, onClose, admission_id, onUploadCompl
         formData.append("deal_id", admission_id);
         formData.append("file", file);
 
-        const response = await fetch("http://localhost:8000/analyze_document", {
+        const response = await fetch(`${API_BASE_URL}/analyze_document`, {
           method: "POST",
           body: formData,
         });

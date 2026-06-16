@@ -1,9 +1,12 @@
-
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePatientDataSocket } from '@/hooks/useSocket';
 import { Patient, VitalSigns, Medication, LabResult } from '@/types/patient';
+import { ChatContextWrapper } from '@/components/ChatContextWrapper';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
 import { PatientOverview } from "@/components/PatientOverview";
 import { CurrentVitalSigns } from "@/components/CurrentVitalSigns";
@@ -44,6 +47,7 @@ import { Plus, ArrowLeft, History, FileText, Heart, TestTube, Calendar, Upload, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { generateMedicalReport, generateMedicalReportBlob } from '@/utils/pdfReportGenerator';
 import { parseISO, parse, isValid, format } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 import { UploadReportModal } from '@/components/UploadReportModal';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -145,12 +149,12 @@ const DealDetailsPage = () => {
       { role: 'assistant', text: 'Hi! how can I assist you with the deal?' },
     ]);
     
-    fetch(`http://localhost:8000/session/${newSessionId}`, {
+    fetch(`${API_BASE_URL}/session/${newSessionId}`, {
       method: 'POST',
     }).catch(err => console.error("Failed to create session:", err));
     
     return () => {
-      fetch(`http://localhost:8000/session/${newSessionId}`, {
+      fetch(`${API_BASE_URL}/session/${newSessionId}`, {
         method: 'DELETE',
       }).catch(err => console.error("Failed to delete session:", err));
     };
@@ -241,7 +245,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
     const handleQueryTable = async (e: any) => {
       const payload = e.detail;
       try {
-        const response = await fetch('http://localhost:8000/query_table', {
+        const response = await fetch(`${API_BASE_URL}/query_table`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: payload.sqlite_query })
@@ -273,7 +277,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
       const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
 
-      const response = await fetch('http://localhost:8000/query', {
+      const response = await fetch(`${API_BASE_URL}/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
