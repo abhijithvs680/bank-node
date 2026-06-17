@@ -2011,14 +2011,14 @@ const DealDetailsPage = () => {
             </button>
 
             {/* Demo button */}
-            <button
+            {/* <button
               id="demo-alert-btn"
               onClick={handleOpenDemoAlert}
               className="flex items-center gap-2 bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] hover:from-[#7c3aed] hover:to-[#8b5cf6] text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(139,92,246,0.35)] hover:shadow-[0_6px_22px_rgba(139,92,246,0.5)] transition-all duration-200 active:scale-95"
             >
               <Play className="w-4 h-4" />
               <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Demo</span>
-            </button>
+            </button> */}
 
             <VoiceRecorder
               admissionId={consultationId || ''}
