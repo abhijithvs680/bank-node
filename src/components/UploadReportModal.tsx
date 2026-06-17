@@ -7,9 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { apiService } from '@/services/apiService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
+import { uploadDealDocument } from '@/services/dealFileService';
 
 interface UploadReportModalProps {
   isOpen: boolean;
@@ -88,34 +86,24 @@ export const UploadReportModal = ({ isOpen, onClose, admission_id, onUploadCompl
     setUploadProgress(50); // Visual indicator
 
     try {
+      const uploaded: Array<{ fileName: string; fileId: string; findings: string }> = [];
+
       for (const file of files) {
-        const formData = new FormData();
-        formData.append("deal_id", admission_id);
-        formData.append("file", file);
-
-        const response = await fetch(`${API_BASE_URL}/analyze_document`, {
-          method: "POST",
-          body: formData,
+        const data = await uploadDealDocument(admission_id, file);
+        uploaded.push({
+          fileName: data.file_name || file.name,
+          fileId: data.file_id,
+          findings,
         });
-
-        if (!response.ok) {
-          throw new Error(`Analysis failed: ${response.statusText}`);
-        }
-        
-        await response.json();
       }
 
       setUploadProgress(100);
       setUploadStatus('success');
-      setUploadedFiles(files.map(f => ({
-        fileName: f.name,
-        fileId: '',
-        findings: findings
-      })));
+      setUploadedFiles(uploaded);
 
       toast({
-        title: "Analysis complete",
-        description: "The documents have been successfully analyzed.",
+        title: 'Upload complete',
+        description: 'Documents uploaded. Run checklist analysis from the deal documents list.',
       });
 
       setUploading(false);

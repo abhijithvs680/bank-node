@@ -134,21 +134,39 @@ export const getBorrowerDetailsData = (consultationId: string) => {
         companyName: 'Apollo Energy Group Holdings',
         dealName: 'Apollo Syndication',
         dealId: '#AG261072',
-        currency: 'USD'
+        currency: 'USD',
+        contact: {
+          name: 'Ranjith K R',
+          email: 'ranjith@abc.com',
+          position: 'Group Finance Director',
+          type: 'Primary Contact',
+        },
       };
     case '6009': // Project Horizon
       return {
         companyName: 'Horizon Infrastructure Corp',
         dealName: 'Project Horizon',
         dealId: '#AG261073',
-        currency: 'ZAR'
+        currency: 'ZAR',
+        contact: {
+          name: 'Shilpa S',
+          email: 'shilpa@abc.com',
+          position: 'Chief Treasury Officer',
+          type: 'Primary Contact',
+        },
       };
     case '6007': // Apex Leverage
       return {
         companyName: 'Apex Retail Group Ltd',
         dealName: 'Apex Leverage',
         dealId: '#AG261071',
-        currency: 'GBP'
+        currency: 'GBP',
+        contact: {
+          name: 'Priyanka R',
+          email: 'priyanka@abc.com',
+          position: 'Head of Group Funding',
+          type: 'Primary Contact',
+        },
       };
     case '1001': // Orion Manufacturing
     default:
@@ -156,7 +174,13 @@ export const getBorrowerDetailsData = (consultationId: string) => {
         companyName: 'ORION MANUFACTURING HOLDINGS LIMITED',
         dealName: 'ORION MANUFACTURING HOLDINGS LIMITED',
         dealId: '#AG261070',
-        currency: 'ZAR'
+        currency: 'ZAR',
+        contact: {
+          name: 'Hariraj',
+          email: 'hariraj@orionman.co.za',
+          position: 'Head of Treasury',
+          type: 'Primary Contact',
+        },
       };
   }
 };
@@ -219,13 +243,24 @@ export const getBorrowerFinancialsData = (consultationId: string) => {
   }
 };
 
+import {
+  formatParticipantsForPrompt,
+  getDealParticipants,
+  type DealParticipant,
+} from './dealParticipants';
+
 export const getAllStaticContextForDeal = (dealId: string, basePatientData: any) => {
+  const participants = getDealParticipants(dealId);
   return {
     DealDetails: basePatientData,
     BorrowerDetails: getBorrowerDetailsData(dealId),
+    DealParticipants: participants,
+    DealParticipantsFormatted: formatParticipantsForPrompt(participants),
     HealthScoreAndTopRisks: getLoanHealthData(dealId),
     SwotAnalysis: getSwotAnalysisData(dealId),
     FinancialsAndKeyRatios: getBorrowerFinancialsData(dealId),
-    RiskFactorsList: riskFactorsData
+    RiskFactorsList: riskFactorsData,
   };
 };
+
+export type { DealParticipant };

@@ -74,6 +74,7 @@ export interface Patient {
   dealCreatedOn?: string;
   dealLastUpdated?: string;
   lenders?: string;
+  dealParticipants?: string;
 }
 
 export interface InpatientAdmissionData {

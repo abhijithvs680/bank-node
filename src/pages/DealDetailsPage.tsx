@@ -42,6 +42,7 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   Copy,
@@ -80,6 +81,8 @@ import {
   executeDealQuery,
   formatQueryTableToolError,
   formatQueryTableToolResponse,
+  formatWebSearchToolError,
+  formatWebSearchToolResponse,
   getDealContextTextForPrompt,
   getGeminiVoiceTools,
   loadDealContext,
@@ -114,64 +117,46 @@ import { MedicineSelectionOverlay } from '@/components/MedicineSelectionOverlay'
 import { ServiceSelectionOverlay } from '@/components/ServiceSelectionOverlay';
 import ConsultationReport from '@/components/ui/reports/ConsultationReport';
 import { AIEventService } from '@/services/aiEventService';
-import { pauseAI, resumeAI, speakMessage, unmuteAudioOutput, muteAudioOutput, startGeminiVoiceAgent, stopGeminiVoiceAgent, sendGeminiFunctionCallOutput } from '@/components/openaiVoiceAgent';
+import { pauseAI, resumeAI, speakMessage, unmuteAudioOutput, muteAudioOutput, startGeminiVoiceAgent, stopGeminiVoiceAgent, sendGeminiFunctionCallOutput, setVoiceIdlePaused } from '@/components/openaiVoiceAgent';
 import { Touchable } from "@/components/ui/touchable";
 import {
   getDoctorFilteredReportSections,
   mapLabOrderForReport,
 } from '@/utils/reportDoctorFilter';
+import { DealNoteCreatedModal } from '@/components/DealNoteCreatedModal';
+import { DealNotifyModal } from '@/components/DealNotifyModal';
+import { ReadableAiContent } from '@/components/ReadableAiContent';
+import {
+  executeDealNoteToolAction,
+  fetchDealAIActivity,
+  formatCreateDealNoteToolError,
+  formatCreateDealNoteToolResponse,
+  mapActivityToLogEntry,
+  type DealAILogEntry,
+  type DealNotePendingData,
+  type DealNoteToolAction,
+  type DealNotifyPendingData,
+} from '@/services/dealNoteService';
 import { getPatientListPath, getPatientTypeFromPath } from '@/utils/patientRoutes';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
-interface AILogEntry {
-  timestamp: string;
-  eventType: "Reminder" | "Alert" | "Analysis" | "Compliance" | "Communication";
-  description: string;
-  status: "Sent" | "Completed" | "Pending" | "Detected" | "Resolved" | "Failed";
-}
+interface AILogEntry extends DealAILogEntry {}
 
-const AI_LOGS_DB: Record<string, AILogEntry[]> = {
-  "1001": [
-    { timestamp: "2026-06-17 10:30", eventType: "Reminder", description: "Payment reminder sent to Orion Manufacturing Holdings Ltd. (Borrower) regarding an overdue installment of R250,000 due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).", status: "Sent" },
-    { timestamp: "2026-06-16 14:15", eventType: "Compliance", description: "Missing FY25 Audited Financial Statement detected for Orion Manufacturing Holdings Ltd. Automated notification sent to Sarah Johnson (Finance Manager) and Rajesh Mehta (Compliance Lead).", status: "Detected" },
-    { timestamp: "2026-06-15 09:00", eventType: "Communication", description: "Document upload reminder sent to Orion Manufacturing Holdings Ltd. regarding signed Term Sheet amendment. Notification sent to John Smith (CFO).", status: "Sent" },
-    { timestamp: "2026-06-14 11:30", eventType: "Analysis", description: "AI Loan Health Score recalculated for Orion Manufacturing Holdings Ltd.: 72/100 (Low Risk). Factors: Repeated DSCR covenant breach and overdue principal repayment concerns.", status: "Completed" },
-    { timestamp: "2026-06-12 16:45", eventType: "Alert", description: "Leverage covenant headroom drop below 150bps warning generated for Orion Manufacturing Holdings Ltd. Alert dispatched to Treasury Team.", status: "Resolved" }
-  ],
-  "6008": [
-    { timestamp: "2026-06-17 10:30", eventType: "Reminder", description: "Payment reminder sent to Apollo Energy Group Holdings (Borrower) regarding an overdue installment of $250,000 due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).", status: "Sent" },
-    { timestamp: "2026-06-16 14:15", eventType: "Compliance", description: "Missing FY25 Audited Financial Statement detected for Apollo Energy Group Holdings. Automated notification sent to Sarah Johnson (Finance Manager) and Rajesh Mehta (Compliance Lead).", status: "Detected" },
-    { timestamp: "2026-06-15 09:00", eventType: "Communication", description: "Document upload reminder sent to Apollo Energy Group Holdings regarding signed Term Sheet amendment. Notification sent to John Smith (CFO).", status: "Sent" },
-    { timestamp: "2026-06-14 11:30", eventType: "Analysis", description: "AI Loan Health Score recalculated for Apollo Energy Group Holdings: 78/100 (Low Risk). Factors: Strong contracted cash flows backed by PPAs offset by moderate leverage concerns.", status: "Completed" },
-    { timestamp: "2026-06-12 16:45", eventType: "Alert", description: "Leverage covenant headroom drop below 150bps warning generated for Apollo Energy Group Holdings. Alert dispatched to Treasury Team.", status: "Resolved" }
-  ],
-  "6009": [
-    { timestamp: "2026-06-17 09:15", eventType: "Reminder", description: "Document upload reminder sent to Horizon Infrastructure Corp (Borrower) regarding updated audited financial statements due on 30 Jun 2026. Notification sent to Amit Kumar (VP Finance).", status: "Sent" },
-    { timestamp: "2026-06-16 11:00", eventType: "Analysis", description: "AI Loan Health Score recalculated for Horizon Infrastructure Corp: 85/100 (Minimal Risk). Factors: Negligible debt/EBITDA of 0.2x and high liquidity margins.", status: "Completed" },
-    { timestamp: "2026-06-15 15:30", eventType: "Communication", description: "Automatic welcome notification and onboarding guidelines sent to Rajesh Patel (Compliance Officer) at Horizon Infrastructure Corp.", status: "Sent" },
-    { timestamp: "2026-06-14 10:00", eventType: "Compliance", description: "KYC verification completed by AI compliance parser for Horizon Infrastructure Corp. All primary and secondary beneficial owner documents verified.", status: "Completed" }
-  ],
-  "6007": [
-    { timestamp: "2026-06-17 11:45", eventType: "Alert", description: "Interest coverage ratio (ICR) below 2.0x threshold warning generated for Apex Retail Group Ltd (current: 1.8x). Alert sent to Credit Risk Division.", status: "Detected" },
-    { timestamp: "2026-06-16 16:20", eventType: "Reminder", description: "Payment reminder sent to Apex Retail Group Ltd (Borrower) regarding an overdue quarterly interest installment of £180,000 due on 15 Jun 2026. Reminder sent to Sarah Peterson (Head of Treasury) and Michael Botha (Finance Director).", status: "Sent" },
-    { timestamp: "2026-06-15 13:10", eventType: "Compliance", description: "Missing Q1 Management Accounts detected for Apex Retail Group Ltd. Notification sent to Michael Botha (Finance Director).", status: "Detected" },
-    { timestamp: "2026-06-14 09:30", eventType: "Analysis", description: "AI Loan Health Score recalculated for Apex Retail Group Ltd: 64/100 (Medium Risk). Factors: High leverage of 3.8x and compressed operating margins.", status: "Completed" },
-    { timestamp: "2026-06-12 14:00", eventType: "Communication", description: "On-site audit schedule reminder sent to Sarah Peterson (Head of Treasury) at Apex Retail Group Ltd for scheduled inspection on 24 Jun 2026.", status: "Sent" }
-  ]
-};
+const AI_LOGS_PAGE_SIZE = 5;
 
-const DEFAULT_LOGS: AILogEntry[] = [
-  { timestamp: "2026-06-17 10:00", eventType: "Reminder", description: "Payment reminder sent to ABC Manufacturing Ltd. (Borrower) regarding an overdue installment of $250,000 due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).", status: "Sent" },
-  { timestamp: "2026-06-16 14:00", eventType: "Compliance", description: "Missing financial statement detected for ABC Manufacturing Ltd. Notification sent to Sarah Johnson (Finance Manager).", status: "Detected" },
-  { timestamp: "2026-06-15 09:00", eventType: "Communication", description: "Document upload reminder sent to ABC Manufacturing Ltd. regarding signed term sheet. Notification sent to John Smith (CFO).", status: "Sent" },
-  { timestamp: "2026-06-14 11:00", eventType: "Analysis", description: "AI Loan Health Score recalculated for ABC Manufacturing Ltd.: 72/100 (Low Risk).", status: "Completed" },
-  { timestamp: "2026-06-12 15:00", eventType: "Alert", description: "Leverage covenant headroom warning generated for ABC Manufacturing Ltd. Alert sent to Risk Officer.", status: "Resolved" }
-];
-
-const AILogsTab = ({ consultationId, localLogs }: { consultationId: string; localLogs?: Record<string, AILogEntry[]> }) => {
+const AILogsTab = ({
+  consultationId,
+  localLogs,
+  loading,
+}: {
+  consultationId: string;
+  localLogs?: Record<string, AILogEntry[]>;
+  loading?: boolean;
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const logs = (localLogs && localLogs[consultationId]) || AI_LOGS_DB[consultationId] || DEFAULT_LOGS;
+  const logs = localLogs?.[consultationId] ?? [];
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
@@ -180,6 +165,23 @@ const AILogsTab = ({ consultationId, localLogs }: { consultationId: string; loca
         log.status.toLowerCase().includes(searchTerm.toLowerCase());
     });
   }, [logs, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / AI_LOGS_PAGE_SIZE));
+
+  const paginatedLogs = useMemo(() => {
+    const start = (currentPage - 1) * AI_LOGS_PAGE_SIZE;
+    return filteredLogs.slice(start, start + AI_LOGS_PAGE_SIZE);
+  }, [filteredLogs, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, consultationId]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const getEventIcon = (type: string) => {
     switch (type) {
@@ -193,6 +195,8 @@ const AILogsTab = ({ consultationId, localLogs }: { consultationId: string; loca
         return <FileText className="w-4 h-4 text-amber-600" />;
       case "Communication":
         return <Send className="w-4 h-4 text-purple-600" />;
+      case "Note":
+        return <FileText className="w-4 h-4 text-green-600" />;
       default:
         return <Bell className="w-4 h-4 text-slate-600" />;
     }
@@ -219,30 +223,67 @@ const AILogsTab = ({ consultationId, localLogs }: { consultationId: string; loca
         </div>
       </div>
 
-      {filteredLogs.length > 0 ? (
-        <div className="relative pl-6 border-l border-slate-100 space-y-6 ml-4 py-2">
-          {filteredLogs.map((log, index) => (
-            <div key={index} className="relative">
-              <div className="absolute -left-[35px] top-1.5 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
-                {getEventIcon(log.eventType)}
-              </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-[#1a2256]/40" />
+        </div>
+      ) : filteredLogs.length > 0 ? (
+        <>
+          <div className="relative pl-6 border-l border-slate-100 space-y-6 ml-4 py-2 flex-1">
+            {paginatedLogs.map((log) => (
+              <div key={log.id ?? `${log.timestamp}-${log.description}`} className="relative">
+                <div className="absolute -left-[35px] top-1.5 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+                  {getEventIcon(log.eventType)}
+                </div>
 
-              <div className="bg-slate-50/30 border border-slate-100 rounded-xl p-4 hover:bg-slate-50/70 transition-colors">
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[12px] font-bold text-slate-400">{log.timestamp}</span>
+                <div className="bg-slate-50/30 border border-slate-100 rounded-xl p-4 hover:bg-slate-50/70 transition-colors">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[12px] font-bold text-slate-400">{log.timestamp}</span>
+                      {log.eventTitle && (
+                        <span className="text-[11px] font-semibold text-[#1a2256] bg-[#f0f3f9] px-2 py-0.5 rounded-md">
+                          {log.eventTitle}
+                        </span>
+                      )}
+                    </div>
+                    <ReadableAiContent text={log.description} compact className="text-[14px]" />
                   </div>
-                  <p className="text-[14px] text-slate-700 font-semibold leading-relaxed">
-                    {log.description}
-                  </p>
                 </div>
               </div>
+            ))}
+          </div>
+
+          {filteredLogs.length > AI_LOGS_PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+              <span className="text-[12px] font-medium text-slate-500">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12 border border-dashed border-slate-200 rounded-2xl bg-slate-50/20">
-          <p className="text-slate-400 font-medium text-[14px]">No logs found matching search criteria.</p>
+          <p className="text-slate-400 font-medium text-[14px]">
+            {searchTerm ? 'No logs found matching search criteria.' : 'No AI activity logged for this deal yet.'}
+          </p>
         </div>
       )}
     </div>
@@ -258,8 +299,17 @@ const DealDetailsPage = () => {
     [location.pathname],
   );
   const [patientData, setPatientData] = useState<Patient[]>([]);
-  const [localLogs, setLocalLogs] = useState<Record<string, AILogEntry[]>>(AI_LOGS_DB);
+  const [localLogs, setLocalLogs] = useState<Record<string, AILogEntry[]>>({});
+  const [aiLogsLoading, setAiLogsLoading] = useState(false);
   const [isDemoSheetOpen, setIsDemoSheetOpen] = useState(false);
+  const [aiNoteModal, setAiNoteModal] = useState<{
+    open: boolean;
+    note: DealNotePendingData | null;
+  }>({ open: false, note: null });
+  const [aiNotifyModal, setAiNotifyModal] = useState<{
+    open: boolean;
+    data: DealNotifyPendingData | null;
+  }>({ open: false, data: null });
   const [demoTimer, setDemoTimer] = useState(10);
   const [demoState, setDemoState] = useState<'preview' | 'sent' | 'cancelled'>('preview');
   const demoIntervalRef = useRef<any>(null);
@@ -389,6 +439,25 @@ const DealDetailsPage = () => {
       });
   }, [consultationId]);
 
+  const loadAiActivityLogs = useCallback(async (dealId: string) => {
+    setAiLogsLoading(true);
+    try {
+      const data = await fetchDealAIActivity(dealId);
+      const entries = (data.activities || []).map(mapActivityToLogEntry);
+      setLocalLogs((prev) => ({ ...prev, [dealId]: entries }));
+    } catch (err) {
+      console.error('Failed to fetch AI activity logs:', err);
+      setLocalLogs((prev) => ({ ...prev, [dealId]: [] }));
+    } finally {
+      setAiLogsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!consultationId) return;
+    loadAiActivityLogs(consultationId);
+  }, [consultationId, loadAiActivityLogs]);
+
   const [isVoiceActive, setIsVoiceActive] = useState(false);
 
   const activateHandsFree = async () => {
@@ -447,9 +516,19 @@ const DealDetailsPage = () => {
       const payload = e.detail;
       try {
         const data = await executeDealQuery(payload.sqlite_query, consultationId || undefined);
-        sendGeminiFunctionCallOutput(payload.callId, 'query_table', formatQueryTableToolResponse(data));
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'query_table',
+          formatQueryTableToolResponse(data),
+          { scheduling: 'INTERRUPT' }
+        );
       } catch (err: any) {
-        sendGeminiFunctionCallOutput(payload.callId, 'query_table', formatQueryTableToolError(err.message));
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'query_table',
+          formatQueryTableToolError(err.message),
+          { scheduling: 'INTERRUPT' }
+        );
       }
     };
 
@@ -471,9 +550,19 @@ const DealDetailsPage = () => {
           body: JSON.stringify({ query: payload.query, deal_id: payload.deal_id || consultationId })
         });
         const data = await response.json();
-        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { data: data.results || data });
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'web_search',
+          formatWebSearchToolResponse(data.answer ?? data.results ?? data),
+          { scheduling: 'INTERRUPT' }
+        );
       } catch (err: any) {
-        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { error: err.message });
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'web_search',
+          formatWebSearchToolError(err.message),
+          { scheduling: 'INTERRUPT' }
+        );
       }
     };
 
@@ -482,6 +571,122 @@ const DealDetailsPage = () => {
       document.removeEventListener('ai-web-search-requested', handleWebSearch);
     };
   }, [consultationId]);
+
+  useEffect(() => {
+    const resolveAction = (payload: Record<string, unknown>): DealNoteToolAction => {
+      if (payload.action) return payload.action as DealNoteToolAction;
+      if (payload.notify_title || payload.notify_message) {
+        return payload.note_title ? 'create_note_and_notify' : 'notify_users';
+      }
+      return 'create_note';
+    };
+
+    const handleCreateDealNote = async (e: Event) => {
+      const payload = (e as CustomEvent).detail;
+      if (!consultationId) return;
+
+      const action = resolveAction(payload);
+
+      try {
+        const result = await executeDealNoteToolAction(consultationId, {
+          action,
+          note_title: payload.note_title,
+          note_description: payload.note_description,
+          note_type: payload.note_type,
+          notify_title: payload.notify_title,
+          notify_message: payload.notify_message,
+          recipients: payload.recipients,
+          notify_type: payload.notify_type,
+          ai_call_id: payload.callId,
+        });
+
+        if (result.pendingNote) {
+          setAiNoteModal({
+            open: true,
+            note: result.pendingNote,
+          });
+        }
+
+        if (result.pendingNotify) {
+          setAiNotifyModal({
+            open: true,
+            data: result.pendingNotify,
+          });
+        }
+
+        if (payload.callId) {
+          sendGeminiFunctionCallOutput(
+            payload.callId,
+            'create_deal_note',
+            formatCreateDealNoteToolResponse(result),
+            { scheduling: 'SILENT' }
+          );
+        }
+      } catch (err: any) {
+        if (payload.callId) {
+          sendGeminiFunctionCallOutput(
+            payload.callId,
+            'create_deal_note',
+            formatCreateDealNoteToolError(err.message),
+            { scheduling: 'SILENT' }
+          );
+        }
+        toast({
+          title: action === 'notify_users' ? 'Failed to send notification' : 'Failed to create note',
+          description: err.message || 'Could not complete the requested action.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    document.addEventListener('ai-create-deal-note-requested', handleCreateDealNote);
+    return () => {
+      document.removeEventListener('ai-create-deal-note-requested', handleCreateDealNote);
+    };
+  }, [consultationId, toast, loadAiActivityLogs]);
+
+  useEffect(() => {
+    const modalsOpen = aiNoteModal.open || aiNotifyModal.open;
+    setVoiceIdlePaused(modalsOpen);
+    return () => setVoiceIdlePaused(false);
+  }, [aiNoteModal.open, aiNotifyModal.open]);
+
+  useEffect(() => {
+    const handleManageModals = (e: Event) => {
+      const { action } = (e as CustomEvent).detail || {};
+      if (!action) return;
+
+      if (action === 'close_all' || action === 'cancel_all') {
+        if (aiNoteModal.open && aiNoteModal.note) {
+          document.dispatchEvent(
+            new CustomEvent('ai-deal-modal-action', { detail: { action: 'cancel_note' } })
+          );
+        }
+        if (aiNotifyModal.open && aiNotifyModal.data) {
+          document.dispatchEvent(
+            new CustomEvent('ai-deal-modal-action', { detail: { action: 'cancel_notify' } })
+          );
+        }
+        setAiNoteModal({ open: false, note: null });
+        setAiNotifyModal({ open: false, data: null });
+        return;
+      }
+
+      document.dispatchEvent(
+        new CustomEvent('ai-deal-modal-action', { detail: { action } })
+      );
+
+      if (action === 'cancel_note') {
+        setAiNoteModal({ open: false, note: null });
+      }
+      if (action === 'cancel_notify') {
+        setAiNotifyModal({ open: false, data: null });
+      }
+    };
+
+    document.addEventListener('ai-manage-deal-modals', handleManageModals);
+    return () => document.removeEventListener('ai-manage-deal-modals', handleManageModals);
+  }, [aiNoteModal.open, aiNoteModal.note, aiNotifyModal.open, aiNotifyModal.data]);
 
   const sendChatMessage = async () => {
     const text = chatInput.trim();
@@ -1035,7 +1240,7 @@ const DealDetailsPage = () => {
 
     setLocalLogs(prevLogs => {
       const dealId = consultationId || '';
-      const existing = prevLogs[dealId] || DEFAULT_LOGS;
+      const existing = prevLogs[dealId] || [];
       return {
         ...prevLogs,
         [dealId]: [newEntry, ...existing]
@@ -2170,7 +2375,7 @@ const DealDetailsPage = () => {
               </TabsContent>
 
               <TabsContent value="ai-logs" forceMount className={`mt-0 outline-none min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out ${activeTab !== 'ai-logs' ? 'hidden' : ''}`}>
-                <AILogsTab consultationId={consultationId || ""} localLogs={localLogs} />
+                <AILogsTab consultationId={consultationId || ""} localLogs={localLogs} loading={aiLogsLoading} />
               </TabsContent>
 
               {/* History Tab content */}
@@ -2705,6 +2910,70 @@ const DealDetailsPage = () => {
         </div>
       )}
 
+      {(aiNoteModal.open || aiNotifyModal.open) && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[9998] animate-in fade-in duration-300 pointer-events-none"
+          aria-hidden
+        />
+      )}
+
+      {aiNoteModal.open && aiNotifyModal.open ? (
+        <div className="fixed right-6 top-6 bottom-6 z-[9999] w-[400px] overflow-y-auto scrollbar-transparent flex flex-col gap-4">
+          <DealNoteCreatedModal
+            open={aiNoteModal.open}
+            dealId={consultationId || ''}
+            note={aiNoteModal.note}
+            hideBackdrop
+            variant="stacked"
+            onSaved={(savedNote) => {
+              if (consultationId) void loadAiActivityLogs(consultationId);
+              setAiNotifyModal((prev) =>
+                prev.data
+                  ? { ...prev, data: { ...prev.data, noteReferenceId: savedNote.id } }
+                  : prev
+              );
+            }}
+            onClose={() => setAiNoteModal({ open: false, note: null })}
+          />
+          <DealNotifyModal
+            open={aiNotifyModal.open}
+            dealId={consultationId || ''}
+            data={aiNotifyModal.data}
+            variant="stacked"
+            onSent={() => {
+              if (consultationId) void loadAiActivityLogs(consultationId);
+            }}
+            onClose={() => setAiNotifyModal({ open: false, data: null })}
+          />
+        </div>
+      ) : (
+        <>
+          <DealNoteCreatedModal
+            open={aiNoteModal.open}
+            dealId={consultationId || ''}
+            note={aiNoteModal.note}
+            hideBackdrop
+            onSaved={(savedNote) => {
+              if (consultationId) void loadAiActivityLogs(consultationId);
+              setAiNotifyModal((prev) =>
+                prev.data
+                  ? { ...prev, data: { ...prev.data, noteReferenceId: savedNote.id } }
+                  : prev
+              );
+            }}
+            onClose={() => setAiNoteModal({ open: false, note: null })}
+          />
+          <DealNotifyModal
+            open={aiNotifyModal.open}
+            dealId={consultationId || ''}
+            data={aiNotifyModal.data}
+            onSent={() => {
+              if (consultationId) void loadAiActivityLogs(consultationId);
+            }}
+            onClose={() => setAiNotifyModal({ open: false, data: null })}
+          />
+        </>
+      )}
 
     </div>
   );

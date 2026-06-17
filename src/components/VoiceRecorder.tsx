@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { startGeminiVoiceAgent, stopGeminiVoiceAgent, startContinuousSpeechRecognition, sendGeminiFunctionCallOutput } from "@/components/openaiVoiceAgent";
+import { startGeminiVoiceAgent, stopGeminiVoiceAgent, startContinuousSpeechRecognition, sendGeminiFunctionCallOutput, touchVoiceAgentActivity } from "@/components/openaiVoiceAgent";
+import { VoiceIdleModal } from '@/components/VoiceIdleModal';
 import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
 import {
   buildDealVoiceSystemInstructions,
@@ -7,6 +8,8 @@ import {
   executeDealQuery,
   formatQueryTableToolError,
   formatQueryTableToolResponse,
+  formatWebSearchToolError,
+  formatWebSearchToolResponse,
   getDealContextTextForPrompt,
   getGeminiVoiceTools,
   loadDealContext,
@@ -72,6 +75,7 @@ export const VoiceRecorder = ({
   const recognitionRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<{ user: string; ai: string }[]>([]);
+  const [showIdleModal, setShowIdleModal] = useState(false);
 
   // Stop voice when the route/path changes
   const location = useLocation();
@@ -125,9 +129,19 @@ export const VoiceRecorder = ({
       const payload = e.detail;
       try {
         const data = await executeDealQuery(payload.sqlite_query, admissionId || undefined);
-        sendGeminiFunctionCallOutput(payload.callId, 'query_table', formatQueryTableToolResponse(data));
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'query_table',
+          formatQueryTableToolResponse(data),
+          { scheduling: 'INTERRUPT' }
+        );
       } catch (err: any) {
-        sendGeminiFunctionCallOutput(payload.callId, 'query_table', formatQueryTableToolError(err.message));
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'query_table',
+          formatQueryTableToolError(err.message),
+          { scheduling: 'INTERRUPT' }
+        );
       }
     };
 
@@ -148,9 +162,19 @@ export const VoiceRecorder = ({
           body: JSON.stringify({ query: payload.query, deal_id: payload.deal_id || admissionId })
         });
         const data = await response.json();
-        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { data: data.results || data });
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'web_search',
+          formatWebSearchToolResponse(data.answer ?? data.results ?? data),
+          { scheduling: 'INTERRUPT' }
+        );
       } catch (err: any) {
-        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { error: err.message });
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'web_search',
+          formatWebSearchToolError(err.message),
+          { scheduling: 'INTERRUPT' }
+        );
       }
     };
 
@@ -159,6 +183,24 @@ export const VoiceRecorder = ({
       document.removeEventListener('ai-web-search-requested', handleWebSearch);
     };
   }, [admissionId]);
+
+  useEffect(() => {
+    const handleIdleTimeout = () => {
+      try {
+        if (recognitionRef.current) recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      clearInterval(intervalRef.current);
+      setVoiceMode(false);
+      setIsRecording(false);
+      setLoading(false);
+      setShowIdleModal(true);
+    };
+
+    document.addEventListener('voice-agent-idle-timeout', handleIdleTimeout);
+    return () => document.removeEventListener('voice-agent-idle-timeout', handleIdleTimeout);
+  }, []);
 
   const handleButtonClick = async () => {
     if (!isRecording) {
@@ -187,6 +229,7 @@ export const VoiceRecorder = ({
         });
 
         recognitionRef.current = startContinuousSpeechRecognition((userText) => {
+          touchVoiceAgentActivity();
           setMessages(prev => [...prev, { user: userText, ai: '' }]);
         });
 
@@ -256,6 +299,7 @@ export const VoiceRecorder = ({
 
   return (
     <div className=" bg-gradient-bg flex items-center  ">
+      <VoiceIdleModal open={showIdleModal} onClose={() => setShowIdleModal(false)} />
       {loading ? (
         <div className={`_gradient-border ${voiceMode ? 'active' : ''} `}>
           <div className={`voice-overlay ${voiceMode ? 'active' : ''} listening`}>

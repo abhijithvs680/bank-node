@@ -1,11 +1,25 @@
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Settings, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot } from 'lucide-react';
+import { FileText, Upload, Settings, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot, Trash2, ClipboardCheck } from 'lucide-react';
 import { LabResult } from '@/types/patient';
 import { PDFSidebar } from './PDFSidebar';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RelativeTime } from '@/components/RelativeTime';
 import { Touchable } from '@/components/ui/touchable';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { deleteDealFile } from '@/services/dealNoteService';
+import { uploadDealDocument, runDealFileChecklist } from '@/services/dealFileService';
+import { RunChecklistModal } from '@/components/RunChecklistModal';
+import { useToast } from '@/hooks/use-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
 
@@ -35,6 +49,8 @@ interface BoundingBox {
 }
 
 interface ChecklistItemResult {
+  group_id?: string | null;
+  item_id?: string | null;
   clause: string;
   achieved: boolean;
   page_numbers: number[];
@@ -46,48 +62,13 @@ interface UploadedFile {
   id: string;
   name: string;
   isUploading?: boolean;
+  isAnalyzing?: boolean;
   error?: string;
   fileId?: string;
   checklistResults?: ChecklistItemResult[];
   uploadedAt?: string;
 }
 
-const CHECKLIST_ITEMS = [
-  'Facility Amount',
-  'Facility Type',
-  'Borrower Name',
-  'Tenor / Maturity',
-  'Interest Margin (Applicable Margin)',
-  'Base Rate',
-  'Debt to EBITDA Covenant (Max Leverage)',
-  'Interest Coverage Ratio Covenant (Min ICR)',
-  'Testing Frequency',
-  'Quarterly Financial Statement Deadline',
-  'Annual Financial Statement Deadline',
-  'Compliance Certificate Signatories',
-  'Default Notification Period',
-  'Additional Indebtedness Restriction',
-  'Revolving Facility Cap (Permitted Indebtedness)',
-  'Other Indebtedness Cap (Permitted Indebtedness)',
-  'Asset Disposal Restriction',
-  'Small Disposal Permitted Cap',
-  'Mandatory Prepayment from Disposal Proceeds',
-  'Events of Default (Count)',
-  'Non-Payment Grace Period (Event of Default)',
-  'Cross-Default Threshold',
-  'Amendment Approval — General',
-  'Amendment Approval — All Lenders',
-  'Consent Response Period',
-  'Governing Law',
-  'Voluntary Prepayment Minimum',
-  'Change of Control Prepayment',
-  'Equity Cure Right',
-  'Acquisition Cap (No Consent Required)',
-  'Capital Lease / Purchase Money Cap',
-  'Number of Lenders',
-  'Facility Agent',
-  'Security Trustee',
-];
 
 interface LabResultCardProps {
   result: LabResult;
@@ -191,10 +172,15 @@ interface UploadedFileRowProps {
   onToggle: () => void;
   onClauseClick?: (fileId: string | undefined, fileName: string, pageNumber: number, boundingBoxes?: BoundingBox[]) => void;
   onAskAI?: (fileId: string, fileName: string) => void;
+  onRunChecklist?: (file: UploadedFile) => void;
+  onDelete?: (file: UploadedFile) => void;
+  isDeleting?: boolean;
 }
 
-const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: UploadedFileRowProps) => {
-  const isProcessing = file.isUploading;
+const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI, onRunChecklist, onDelete, isDeleting }: UploadedFileRowProps) => {
+  const isUploading = file.isUploading;
+  const isAnalyzing = file.isAnalyzing;
+  const isBusy = isUploading || isAnalyzing;
   const hasError = !!file.error;
   const rawResults = file.checklistResults || [];
   const results = rawResults.filter(r => {
@@ -204,60 +190,95 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: Upl
            clauseName !== 'amendment approval - super majority items';
   });
   
+  const hasAnalysis = results.length > 0;
   const foundItems = results.filter(r => r.achieved === true);
-  let missingItems = results.filter(r => r.achieved === false);
-  
-  // Fallback: if backend didn't return any missing items explicitly, calculate from CHECKLIST_ITEMS
-  if (foundItems.length > 0 && missingItems.length === 0) {
-    const achievedClauses = new Set(foundItems.map(r => r.clause.toLowerCase().trim()));
-    missingItems = CHECKLIST_ITEMS.filter(item => !achievedClauses.has(item.toLowerCase().trim()))
-      .map(item => ({ clause: item, achieved: false, page_numbers: [], exact_quotes: [] }));
-  } else if (results.length === 0) {
-    missingItems = CHECKLIST_ITEMS.map(item => ({ clause: item, achieved: false, page_numbers: [], exact_quotes: [] }));
-  }
+  const missingItems = results.filter(r => r.achieved === false);
+
+  const statusText = isUploading
+    ? 'Uploading…'
+    : isAnalyzing
+      ? 'Running checklist analysis…'
+      : hasError
+        ? 'Upload failed'
+        : hasAnalysis
+          ? `${foundItems.length} found, ${missingItems.length} missing`
+          : 'Uploaded — run checklist analysis';
   return (
     <div className="rounded-[16px] border border-[#e0e3f5] bg-white overflow-hidden shadow-sm transition-all duration-200">
       {/* Row header */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 p-3 hover:bg-[#f5f7fc] transition-colors text-left disabled:opacity-70 disabled:cursor-not-allowed"
-        disabled={isProcessing}
-      >
-        <div className="w-[40px] h-[40px] rounded-[10px] bg-[#f0ecf7] flex items-center justify-center flex-shrink-0">
-          <FileText className="w-4 h-4 text-[#64549f]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[0.9rem] font-bold text-[#1a2256] truncate">{file.name}</p>
-          <p className="text-[0.75rem] text-[#6e6868] font-medium mt-0.5">
-            {isProcessing ? 'Processing with AI...' : hasError ? 'Processing failed' : `${foundItems.length} found, ${missingItems.length} missing`}
-          </p>
-        </div>
+      <div className="w-full flex items-center gap-3 p-3 hover:bg-[#f5f7fc] transition-colors">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex flex-1 items-center gap-3 min-w-0 text-left disabled:opacity-70 disabled:cursor-not-allowed"
+          disabled={isBusy}
+        >
+          <div className="w-[40px] h-[40px] rounded-[10px] bg-[#f0ecf7] flex items-center justify-center flex-shrink-0">
+            <FileText className="w-4 h-4 text-[#64549f]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[0.9rem] font-bold text-[#1a2256] truncate">{file.name}</p>
+            <p className="text-[0.75rem] text-[#6e6868] font-medium mt-0.5">{statusText}</p>
+          </div>
+          {isBusy ? (
+            <Loader2 className="w-4 h-4 text-[#64549f] animate-spin flex-shrink-0" />
+          ) : (
+            isOpen
+              ? <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              : <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          )}
+        </button>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {!isProcessing && !hasError && file.fileId && onAskAI && (
+          {!isBusy && !hasError && file.fileId && onRunChecklist && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAskAI(file.fileId!, file.name);
-              }}
-              className="flex items-center gap-1 text-[12px] font-bold text-[#1a2256] bg-[#f5f7fc] px-2 py-1 rounded hover:bg-[#e0e3f5] transition-colors mr-2"
+              type="button"
+              onClick={() => onRunChecklist(file)}
+              className="flex items-center gap-1 text-[12px] font-bold text-[#64549f] bg-[#f0ecf7] px-2 py-1 rounded hover:bg-[#e0d5f5] transition-colors"
+            >
+              <ClipboardCheck className="w-3.5 h-3.5" />
+              Run checklist
+            </button>
+          )}
+          {!isBusy && !hasError && file.fileId && onAskAI && (
+            <button
+              type="button"
+              onClick={() => onAskAI(file.fileId!, file.name)}
+              className="flex items-center gap-1 text-[12px] font-bold text-[#1a2256] bg-[#f5f7fc] px-2 py-1 rounded hover:bg-[#e0e3f5] transition-colors"
             >
               <Bot className="w-3.5 h-3.5" />
               Ask AI
             </button>
           )}
-          {isProcessing ? (
-            <Loader2 className="w-4 h-4 text-[#64549f] animate-spin" />
-          ) : (
-            isOpen
-              ? <ChevronUp className="w-4 h-4 text-slate-400" />
-              : <ChevronDown className="w-4 h-4 text-slate-400" />
+          {!isBusy && file.fileId && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(file)}
+              disabled={isDeleting}
+              className="flex items-center gap-1 text-[12px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              Delete
+            </button>
           )}
         </div>
-      </button>
+      </div>
 
       {/* Accordion checklist */}
-      {isOpen && !isProcessing && !hasError && (
+      {isOpen && !isBusy && !hasError && (
         <div className="border-t border-[#f0f3f9] bg-[#fbfcfe] px-4 py-4 animate-in fade-in slide-in-from-top-1 duration-200">
+          {!hasAnalysis ? (
+            <div className="text-center py-6 px-2">
+              <p className="text-sm text-slate-600 font-medium">No checklist analysis yet.</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Use <span className="font-semibold">Run checklist</span> to evaluate this file against deal checklist groups.
+              </p>
+            </div>
+          ) : (
+            <>
           <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-3">
             Found Items Analysis
           </p>
@@ -267,7 +288,12 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: Upl
                 key={`found-${idx}`}
                 onClick={() => {
                   if (onClauseClick && item.page_numbers && item.page_numbers.length > 0) {
-                    onClauseClick(file.fileId, file.name, item.page_numbers[0], item.bounding_boxes);
+                    onClauseClick(
+                      file.fileId,
+                      file.name,
+                      item.page_numbers[0],
+                      item.bounding_boxes
+                    );
                   }
                 }}
                 className={`flex items-start gap-3 px-3 py-2 rounded-[10px] border border-[#e0e3f5] bg-white ${item.page_numbers && item.page_numbers.length > 0 ? 'cursor-pointer hover:bg-slate-50 transition-colors' : ''}`}
@@ -344,6 +370,8 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: Upl
               </div>
             )}
           </div>
+            </>
+          )}
         </div>
       )}
       
@@ -375,13 +403,17 @@ export const RecentResults = ({
 }: RecentResultsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [openFileId, setOpenFileId] = useState<string | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<UploadedFile | null>(null);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
   const [viewingFileUrl, setViewingFileUrl] = useState<string | null>(null);
   const [viewingFileName, setViewingFileName] = useState<string>('');
   const [viewingTargetPage, setViewingTargetPage] = useState<number | undefined>(undefined);
   const [viewingTargetBoxes, setViewingTargetBoxes] = useState<BoundingBox[]>([]);
+  const [checklistModalFile, setChecklistModalFile] = useState<UploadedFile | null>(null);
 
   // Sort uploaded files so that the last uploaded document is first in order
   const sortedFilesForDisplay = useMemo(() => {
@@ -397,41 +429,78 @@ export const RecentResults = ({
     return [...uploadedFiles].sort((a, b) => parseUploadedAt(b.uploadedAt) - parseUploadedAt(a.uploadedAt));
   }, [uploadedFiles]);
 
-  // Fetch existing deal files on mount
-  useEffect(() => {
+  const loadDealFiles = useCallback(async () => {
     if (!admissionId) return;
 
-    const fetchDealFiles = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/deal_files/${admissionId}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch deal files: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        if (data && data.files) {
-          const loadedFiles: UploadedFile[] = data.files.map((file: any, index: number) => ({
-            id: `server-${file.file_id}`,
-            name: file.file_name || `Document ${index + 1}`,
-            fileId: file.file_id,
-            checklistResults: file.checklist_data || [],
-            isUploading: false,
-            uploadedAt: file.uploaded_at,
-          }));
-          
-          setUploadedFiles(prev => {
-            const existingIds = new Set(prev.map(p => p.fileId).filter(Boolean));
-            const newFiles = loadedFiles.filter(f => !existingIds.has(f.fileId));
-            return [...newFiles, ...prev];
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching deal files:", err);
+    try {
+      const response = await fetch(`${API_BASE_URL}/deal_files/${admissionId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch deal files: ${response.statusText}`);
       }
-    };
 
-    fetchDealFiles();
+      const data = await response.json();
+      if (data?.files) {
+        const loadedFiles: UploadedFile[] = data.files.map((file: any, index: number) => ({
+          id: `server-${file.file_id}`,
+          name: file.file_name || `Document ${index + 1}`,
+          fileId: file.file_id,
+          checklistResults: file.checklist_data || [],
+          isUploading: false,
+          uploadedAt: file.uploaded_at,
+        }));
+
+        setUploadedFiles((prev) => {
+          const serverFileIds = new Set(loadedFiles.map((f) => f.fileId));
+          const pendingLocal = prev.filter(
+            (f) =>
+              f.isUploading ||
+              (!f.fileId && f.id.startsWith('local-')) ||
+              (f.isAnalyzing && f.fileId && !serverFileIds.has(f.fileId))
+          );
+          return [...pendingLocal, ...loadedFiles];
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching deal files:', err);
+    }
   }, [admissionId]);
+
+  useEffect(() => {
+    loadDealFiles();
+  }, [loadDealFiles]);
+
+  const handleDeleteRequest = (file: UploadedFile) => {
+    setFileToDelete(file);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!admissionId || !fileToDelete?.fileId) return;
+
+    setDeletingFileId(fileToDelete.fileId);
+    try {
+      const result = await deleteDealFile(admissionId, fileToDelete.fileId);
+      setUploadedFiles((prev) => prev.filter((f) => f.fileId !== fileToDelete.fileId));
+      if (openFileId === fileToDelete.id) {
+        setOpenFileId(null);
+      }
+      if (viewingFileUrl) {
+        setViewingFileUrl(null);
+      }
+      toast({
+        title: 'File deleted',
+        description: `"${result.file_name}" has been removed.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Failed to delete file',
+        description: err.message || 'Could not delete the file.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingFileId(null);
+      setFileToDelete(null);
+    }
+  };
 
   const handleClauseClick = (fileId: string | undefined, fileName: string, pageNumber: number, boundingBoxes?: BoundingBox[]) => {
     if (fileId) {
@@ -458,6 +527,48 @@ export const RecentResults = ({
       }));
   }, [labResults]);
 
+  const handleRunChecklist = (file: UploadedFile) => {
+    if (!file.fileId) return;
+    setChecklistModalFile(file);
+  };
+
+  const handleRunChecklistStart = async (groupIds: string[]) => {
+    if (!checklistModalFile?.fileId || !admissionId) return;
+    const fileId = checklistModalFile.fileId;
+    const fileRowId = checklistModalFile.id;
+    
+    // Close modal immediately
+    setChecklistModalFile(null);
+
+    // Set analyzing state
+    setUploadedFiles((prev) =>
+      prev.map((f) =>
+        f.fileId === fileId ? { ...f, isAnalyzing: true } : f
+      )
+    );
+
+    try {
+      await runDealFileChecklist(admissionId, fileId, groupIds);
+      
+      setUploadedFiles((prev) =>
+        prev.map((f) => (f.fileId === fileId ? { ...f, isAnalyzing: false } : f))
+      );
+      setOpenFileId(fileRowId);
+      await loadDealFiles();
+    } catch (err: unknown) {
+      console.error('Checklist analysis failed:', err);
+      setUploadedFiles((prev) =>
+        prev.map((f) =>
+          f.fileId === fileId ? { ...f, isAnalyzing: false, error: err instanceof Error ? err.message : 'Checklist analysis failed' } : f
+        )
+      );
+    }
+  };
+
+  const handleChecklistModalClose = () => {
+    setChecklistModalFile(null);
+  };
+
   // Handle file selection from native browser
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -474,20 +585,7 @@ export const RecentResults = ({
     setUploadedFiles(prev => [newFile, ...prev]);
 
     try {
-      const formData = new FormData();
-      formData.append("deal_id", admissionId || 'unknown');
-      formData.append("file", file);
-
-      const response = await fetch(`${API_BASE_URL}/analyze_document`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await uploadDealDocument(admissionId || 'unknown', file);
       
       setUploadedFiles(prev => prev.map(f => 
         f.id === tempId 
@@ -495,21 +593,21 @@ export const RecentResults = ({
               ...f, 
               isUploading: false, 
               fileId: data.file_id,
-              checklistResults: data.checklist_analysis?.items || [],
-              uploadedAt: data.uploaded_at || f.uploadedAt
+              name: data.file_name || f.name,
+              checklistResults: [],
             }
           : f
       ));
 
     } catch (error) {
-      console.error("Failed to analyze document:", error);
+      console.error("Failed to upload document:", error);
       setUploadedFiles(prev => prev.map(f => 
         f.id === tempId 
-          ? { ...f, isUploading: false, error: 'Failed to process' }
+          ? { ...f, isUploading: false, error: error instanceof Error ? error.message : 'Failed to upload' }
           : f
       ));
     } finally {
-      e.target.value = ''; // Reset input
+      e.target.value = '';
     }
   };
 
@@ -567,6 +665,9 @@ export const RecentResults = ({
             onToggle={() => setOpenFileId(openFileId === file.id ? null : file.id)}
             onClauseClick={handleClauseClick}
             onAskAI={onAskAI}
+            onRunChecklist={handleRunChecklist}
+            onDelete={handleDeleteRequest}
+            isDeleting={deletingFileId === file.fileId}
           />
         ))}
 
@@ -603,8 +704,9 @@ export const RecentResults = ({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => navigate('/clause-management')}
+            onClick={() => admissionId && navigate(`/clause-management?deal_id=${encodeURIComponent(admissionId)}`)}
             variant="outline"
+            disabled={!admissionId}
             className="flex items-center justify-center rounded-[10px] w-9 h-9 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all active:scale-95 border border-slate-200"
             title="Clause Management"
           >
@@ -620,7 +722,7 @@ export const RecentResults = ({
             {uploadedFiles.some(f => f.isUploading) ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Processing...
+                Uploading…
               </>
             ) : (
               <>
@@ -650,6 +752,42 @@ export const RecentResults = ({
           targetPage={viewingTargetPage}
           targetBoxes={viewingTargetBoxes}
           patientName="Document Analysis"
+        />
+      )}
+
+      <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{fileToDelete?.name}</strong> from the deal,
+              including its checklist analysis data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingFileId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDelete();
+              }}
+              disabled={!!deletingFileId}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingFileId ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {checklistModalFile?.fileId && admissionId && (
+        <RunChecklistModal
+          open={!!checklistModalFile}
+          dealId={admissionId}
+          fileId={checklistModalFile.fileId}
+          fileName={checklistModalFile.name}
+          onClose={handleChecklistModalClose}
+          onRun={handleRunChecklistStart}
         />
       )}
     </div>

@@ -29,6 +29,56 @@ export interface BoundingBox {
   xmax: number;
 }
 
+function getBoxPageNumber(box: BoundingBox): number {
+  const page = Number(box.page_number);
+  return Number.isFinite(page) ? page : 0;
+}
+
+interface PdfPageWithHighlightsProps {
+  pageNumber: number;
+  scale: number;
+  boxes: BoundingBox[];
+  onPageRef?: (el: HTMLDivElement | null) => void;
+}
+
+function PdfPageWithHighlights({
+  pageNumber,
+  scale,
+  boxes,
+  onPageRef,
+}: PdfPageWithHighlightsProps) {
+  return (
+    <div
+      ref={onPageRef}
+      className="mb-6 shadow-lg bg-white relative mx-auto w-fit"
+    >
+      <Page
+        pageNumber={pageNumber}
+        scale={scale}
+        className="block"
+        renderAnnotationLayer={false}
+        renderTextLayer={false}
+      />
+      {boxes.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none z-10">
+          {boxes.map((box, i) => (
+            <div
+              key={`${pageNumber}-${i}`}
+              className="absolute bg-yellow-400/40 border border-yellow-500/70 mix-blend-multiply"
+              style={{
+                top: `${box.ymin / 10}%`,
+                left: `${box.xmin / 10}%`,
+                width: `${Math.max((box.xmax - box.xmin) / 10, 0.2)}%`,
+                height: `${Math.max((box.ymax - box.ymin) / 10, 0.2)}%`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Support both new multi-report interface and legacy single-file interface
 interface PDFSidebarProps {
   isOpen: boolean;
@@ -81,6 +131,7 @@ export const PDFSidebar = ({
   // react-pdf state
   const [numPages, setNumPages] = useState<number | null>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const pdfScale = pdfZoom / 100;
 
   useEffect(() => {
     if (numPages && targetPage && pageRefs.current[targetPage]) {
@@ -596,48 +647,30 @@ export const PDFSidebar = ({
                 </div>
               ) : (
                 <div 
-                  className="w-full h-full overflow-y-auto bg-[#4b4e51] flex flex-col items-center py-6"
+                  className="w-full h-full overflow-y-auto bg-[#4b4e51] py-6"
+                  onWheel={handlePdfWheel}
                 >
                   <Document
                     file={currentReport.fileUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div className="text-white">Streaming document...</div>}
-                    error={<div className="text-red-400">Failed to load PDF.</div>}
+                    loading={<div className="text-white text-center py-8">Streaming document...</div>}
+                    error={<div className="text-red-400 text-center py-8">Failed to load PDF.</div>}
                   >
                     {Array.from(new Array(numPages || 0), (el, index) => {
                       const pageNumber = index + 1;
+                      const pageBoxes =
+                        targetBoxes?.filter((box) => getBoxPageNumber(box) === pageNumber) ?? [];
+
                       return (
-                        <div
+                        <PdfPageWithHighlights
                           key={pageNumber}
-                          ref={(el) => {
-                            if (pageRefs.current) {
-                              pageRefs.current[pageNumber] = el;
-                            }
+                          pageNumber={pageNumber}
+                          scale={pdfZoom / 100}
+                          boxes={pageBoxes}
+                          onPageRef={(el) => {
+                            pageRefs.current[pageNumber] = el;
                           }}
-                          className="mb-6 shadow-lg bg-white relative"
-                        >
-                          <Page
-                            pageNumber={pageNumber}
-                            scale={pdfZoom / 100}
-                            renderAnnotationLayer={false}
-                            renderTextLayer={false}
-                          />
-                          {targetBoxes && targetBoxes.map((box, i) => {
-                            if (box.page_number !== pageNumber) return null;
-                            return (
-                              <div
-                                key={i}
-                                className="absolute bg-yellow-400/40 border-[1.5px] border-yellow-500/70 pointer-events-none mix-blend-multiply"
-                                style={{
-                                  top: `${(box.ymin / 1000) * 100}%`,
-                                  left: `${(box.xmin / 1000) * 100}%`,
-                                  height: `${((box.ymax - box.ymin) / 1000) * 100}%`,
-                                  width: `${((box.xmax - box.xmin) / 1000) * 100}%`,
-                                }}
-                              />
-                            );
-                          })}
-                        </div>
+                        />
                       );
                     })}
                   </Document>

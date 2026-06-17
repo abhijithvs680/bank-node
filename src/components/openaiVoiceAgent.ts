@@ -494,6 +494,98 @@ let geminiProcessor: ScriptProcessorNode | null = null;
 let geminiIsRecording = false;
 let geminiIsSetupComplete = false;
 
+const VOICE_IDLE_MS = 5 * 60 * 1000;
+let lastVoiceActivityAt = Date.now();
+let voiceIdleCheckInterval: ReturnType<typeof setInterval> | null = null;
+let voiceIdlePaused = false;
+
+export function touchVoiceAgentActivity() {
+  lastVoiceActivityAt = Date.now();
+}
+
+export function setVoiceIdlePaused(paused: boolean) {
+  voiceIdlePaused = paused;
+  if (paused) touchVoiceAgentActivity();
+}
+
+let modalOutcomeHandler: ((e: Event) => void) | null = null;
+
+export function sendGeminiSilentContextUpdate(text: string) {
+  if (!geminiSocket || geminiSocket.readyState !== WebSocket.OPEN || !geminiIsRecording) return;
+
+  touchVoiceAgentActivity();
+  geminiSocket.send(
+    JSON.stringify({
+      clientContent: {
+        turns: [
+          {
+            role: 'user',
+            parts: [{ text: `[MODAL_OUTCOME] ${text}` }],
+          },
+        ],
+        turnComplete: true,
+      },
+    })
+  );
+}
+
+function attachModalOutcomeListener() {
+  if (modalOutcomeHandler) return;
+  modalOutcomeHandler = (e: Event) => {
+    const message = (e as CustomEvent).detail?.message;
+    if (message) sendGeminiSilentContextUpdate(message);
+  };
+  document.addEventListener('ai-deal-modal-outcome', modalOutcomeHandler);
+}
+
+function detachModalOutcomeListener() {
+  if (!modalOutcomeHandler) return;
+  document.removeEventListener('ai-deal-modal-outcome', modalOutcomeHandler);
+  modalOutcomeHandler = null;
+}
+
+function startVoiceIdleMonitor() {
+  stopVoiceIdleMonitor();
+  touchVoiceAgentActivity();
+  voiceIdleCheckInterval = setInterval(() => {
+    if (!geminiIsRecording || voiceIdlePaused) return;
+    if (Date.now() - lastVoiceActivityAt < VOICE_IDLE_MS) return;
+
+    console.log('Voice agent idle timeout reached — stopping session.');
+    stopGeminiVoiceAgent();
+    document.dispatchEvent(new CustomEvent('voice-agent-idle-timeout'));
+  }, 30_000);
+}
+
+function stopVoiceIdleMonitor() {
+  if (voiceIdleCheckInterval) {
+    clearInterval(voiceIdleCheckInterval);
+    voiceIdleCheckInterval = null;
+  }
+}
+
+function recordVoiceInteraction(msg: any) {
+  if (msg.toolCall) {
+    touchVoiceAgentActivity();
+    return;
+  }
+
+  const serverContent = msg.serverContent;
+  if (!serverContent) return;
+
+  if (serverContent.inputTranscription?.text) {
+    touchVoiceAgentActivity();
+  }
+  if (serverContent.userTurn) {
+    touchVoiceAgentActivity();
+  }
+
+  const parts = serverContent.modelTurn?.parts;
+  if (parts?.some((part: { text?: string }) => part.text)) {
+    touchVoiceAgentActivity();
+  }
+}
+
 // Convert Float32Array to 16kHz PCM Int16
 function floatTo16BitPCM(input: Float32Array): Int16Array {
   const output = new Int16Array(input.length);
@@ -570,6 +662,8 @@ export async function startGeminiVoiceAgent(
 ): Promise<boolean> {
   if (geminiIsRecording) return false;
   geminiIsRecording = true;
+  startVoiceIdleMonitor();
+  attachModalOutcomeListener();
 
   // Connect to Gemini WebSocket
   const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${ephemeralKey}`;
@@ -667,6 +761,7 @@ export async function startGeminiVoiceAgent(
 }
 
 function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOnly: boolean = false) {
+  recordVoiceInteraction(msg);
   // To avoid spam, we won't log raw audio bytes, but we'll log everything else
   if (msg.serverContent && msg.serverContent.modelTurn && msg.serverContent.modelTurn.parts) {
     console.log("⬅️ [GEMINI RESPONSE PARTS]:", msg.serverContent.modelTurn.parts.map(p => Object.keys(p)));
@@ -714,6 +809,8 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
 
       if (fn.name === "query_table") eventName = 'ai-query-table-requested';
       if (fn.name === "web_search") eventName = 'ai-web-search-requested';
+      if (fn.name === "create_deal_note") eventName = 'ai-create-deal-note-requested';
+      if (fn.name === "manage_deal_modals") eventName = 'ai-manage-deal-modals';
 
       if (eventName) {
         // Construct the expected payload exactly as the OpenAI implementation did
@@ -726,8 +823,31 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
         const e = new CustomEvent(eventName, { detail: payload });
         document.dispatchEvent(e);
 
+        if (fn.name === "manage_deal_modals" && fn.id && geminiSocket?.readyState === WebSocket.OPEN) {
+          geminiSocket.send(JSON.stringify({
+            toolResponse: {
+              functionResponses: [
+                {
+                  id: fn.id,
+                  name: fn.name,
+                  response: { result: JSON.stringify({ success: true, action: aiData.action }) },
+                  scheduling: 'SILENT',
+                }
+              ]
+            }
+          }));
+          continue;
+        }
+
         // Immediately respond to Gemini so it doesnt hang (except for async queries)
-        if (fn.name !== "query_table" && fn.name !== "web_search" && geminiSocket && geminiSocket.readyState === WebSocket.OPEN) {
+        if (
+          fn.name !== "query_table" &&
+          fn.name !== "web_search" &&
+          fn.name !== "create_deal_note" &&
+          fn.name !== "manage_deal_modals" &&
+          geminiSocket &&
+          geminiSocket.readyState === WebSocket.OPEN
+        ) {
           geminiSocket.send(JSON.stringify({
             toolResponse: {
               functionResponses: [
@@ -745,27 +865,39 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
   }
 }
 
-export function sendGeminiFunctionCallOutput(callId: string, name: string, output: any) {
+export function sendGeminiFunctionCallOutput(
+  callId: string,
+  name: string,
+  output: any,
+  options?: { scheduling?: 'INTERRUPT' | 'WHEN_IDLE' | 'SILENT' }
+) {
   if (!geminiSocket || geminiSocket.readyState !== WebSocket.OPEN) return;
-  
+
+  const functionResponse: Record<string, unknown> = {
+    id: callId,
+    name: name,
+    response: output,
+  };
+
+  if (options?.scheduling) {
+    functionResponse.scheduling = options.scheduling;
+  }
+
   const responseMsg = {
     toolResponse: {
-      functionResponses: [
-        {
-          id: callId,
-          name: name,
-          response: output
-        }
-      ]
-    }
+      functionResponses: [functionResponse],
+    },
   };
   console.log("Sending Gemini function call output:", responseMsg);
+  touchVoiceAgentActivity();
   geminiSocket.send(JSON.stringify(responseMsg));
 }
 
 export function stopGeminiVoiceAgent() {
   geminiIsRecording = false;
   geminiIsSetupComplete = false;
+  stopVoiceIdleMonitor();
+  detachModalOutcomeListener();
   if (geminiProcessor) {
     geminiProcessor.disconnect();
     geminiProcessor = null;

@@ -1,5 +1,6 @@
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
+import { format } from 'date-fns';
 import { dealContextDB, DealContextRecord, DealDataset } from './dealContextDatabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
@@ -286,6 +287,17 @@ export function formatQueryTableToolError(message: string): { result: string } {
   return { result: `Error: ${message}` };
 }
 
+export function formatWebSearchToolResponse(data: unknown): { result: string } {
+  const text = typeof data === 'string' ? data : JSON.stringify(data);
+  return { result: text };
+}
+
+export function formatWebSearchToolError(message: string): { result: string } {
+  return { result: `Error: ${message}` };
+}
+
+export type GeminiToolScheduling = 'INTERRUPT' | 'WHEN_IDLE' | 'SILENT';
+
 export function getQueryTableToolDeclaration(record?: DealContextRecord) {
   const schema = record ? buildSchemaDescription(record) : 'Use sqlite_master to discover tables.';
 
@@ -331,10 +343,97 @@ export function getWebSearchToolDeclaration() {
   };
 }
 
+export function getCreateDealNoteToolDeclaration() {
+  return {
+    name: 'create_deal_note',
+    description:
+      'Create deal notes and/or notify deal users. ALWAYS use query_table first when the note or notification needs deal data you do not already have — gather complete records before calling this tool. ' +
+      'Use action "create_note" when the user asks to generate/save a note only. ' +
+      'Use "notify_users" when the user asks to remind, notify, or send information to specific users or all deal users WITHOUT creating a note. ' +
+      'Use "create_note_and_notify" when the user wants both a note/report saved AND a reminder/notification sent to users. ' +
+      'note_description and notify_message must be MAXIMALLY DETAILED — include every relevant record, ID, date, amount, currency, status, party name, and figure from the data. Never omit rows or compress multiple items into vague summaries.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        action: {
+          type: 'STRING',
+          description:
+            'One of: create_note, notify_users, create_note_and_notify.',
+        },
+        note_title: {
+          type: 'STRING',
+          description: 'Descriptive title reflecting the full scope of the note. Required for create_note and create_note_and_notify.',
+        },
+        note_description: {
+          type: 'STRING',
+          description:
+            'Exhaustive note body with MAXIMUM detail on the topic. Start with a one-line scope summary, then numbered items — one per record/event/entity. ' +
+            'Each item MUST include all available fields: reference IDs, due dates, amounts with currency, statuses, party/lender/borrower names, KYC status, next review dates, breach flags, covenant names, etc. ' +
+            'If the topic covers 5 lenders, list all 5 with full detail. If 8 settlements, list all 8. Never skip records, never say "and others", never use vague phrases like "various payments". ' +
+            'Use query_table results in full. Format for human scanning with numbered lines, not a dense paragraph.',
+        },
+        note_type: {
+          type: 'STRING',
+          description: 'Note category such as Compliance, Risk, Covenant, Communication, or Analysis.',
+        },
+        notify_title: {
+          type: 'STRING',
+          description:
+            'Specific notification heading (e.g. "Lender KYC Status Alert — 3 Lenders Due Review"). Required for notify_users and create_note_and_notify.',
+        },
+        notify_message: {
+          type: 'STRING',
+          description:
+            'Professional email notification body with MAXIMUM detail. Write in a formal, professional email tone. ' +
+            'Include a proper greeting and sign-off. Incorporate every relevant record with reference IDs, dates, amounts, currencies, statuses, and party names using bullet points or a clear structure. ' +
+            'Recipients must be able to act without needing to look up missing data. Never abbreviate or omit items.',
+        },
+        recipients: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description:
+            'Email recipients as "Name (Role) <email@company.com>". Use DealParticipants from the static context — each participant has name, role, organization, and email. Include all relevant deal users when the user says "all users" or "all lenders".',
+        },
+        notify_type: {
+          type: 'STRING',
+          description: 'Activity type: Reminder, Communication, Alert, or Compliance. Defaults to Reminder.',
+        },
+      },
+      required: ['action'],
+    },
+  };
+}
+
+export function getManageDealModalsToolDeclaration() {
+  return {
+    name: 'manage_deal_modals',
+    description:
+      'Control open note/notify preview modals. Use when the user asks to save, send, cancel, or close modals. ' +
+      'save_note confirms the note modal. send_notify confirms the notify modal. ' +
+      'cancel_note, cancel_notify, or close_all dismiss modals without saving or sending.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        action: {
+          type: 'STRING',
+          description:
+            'One of: save_note, send_notify, cancel_note, cancel_notify, close_all, cancel_all.',
+        },
+      },
+      required: ['action'],
+    },
+  };
+}
+
 export function getGeminiVoiceTools(record?: DealContextRecord) {
   return [
     {
-      functionDeclarations: [getQueryTableToolDeclaration(record), getWebSearchToolDeclaration()],
+      functionDeclarations: [
+        getQueryTableToolDeclaration(record),
+        getCreateDealNoteToolDeclaration(),
+        getManageDealModalsToolDeclaration(),
+        getWebSearchToolDeclaration(),
+      ],
     },
   ];
 }
@@ -353,9 +452,25 @@ export function buildDealVoiceSystemInstructions(
     ? `\n--- UI STATIC DATA CONTEXT (Currently visible to user) ---\n${JSON.stringify(staticContext, null, 2)}\n----------------------------------------------------------\n`
     : '';
 
+  const now = new Date();
+  const currentDate = format(now, 'yyyy-MM-dd');
+  const currentDateTime = format(now, "EEEE, MMMM d, yyyy 'at' h:mm a");
+
   return `${intro}
 You are a bank loan lending platform deal assistant helping with Deal ID: ${dealId}.
-Answer the user's questions based on the deal data below. If you need checklist achievements, file status, or data not in the context, use the query_table tool.
+
+CURRENT DATE & TIME:
+Today is ${currentDateTime} (${currentDate}).
+Use this when interpreting relative dates (today, yesterday, overdue, due soon, next week, etc.) and when the user asks about timing or deadlines.
+
+Answer the user's questions based on the deal data below. If you need checklist achievements, file status, or data not in the context, use the query_table tool. For notes and notifications use create_deal_note: create_note for notes only, notify_users for reminders/notifications only, create_note_and_notify when both are requested.
+
+NOTE & NOTIFY CONTENT — MAXIMUM DETAIL REQUIRED:
+• Before create_deal_note, run query_table if you need any deal data not already in context. Do not create sparse notes from memory or partial context.
+• note_description and notify_message must be EXHAUSTIVE on the requested topic. Include EVERY matching record with ALL available fields: reference IDs, dates, amounts, currencies, statuses, party names, KYC results, next review dates, covenant/breach references, facility names, etc.
+• One numbered line per record (e.g. "1. LN045 — First Capital Bank: KYC Approved, Next KYC 10/21/2026."). If the data has 5 items, the note must list all 5 — never 2 with "and others".
+• Do not summarize away facts. Wrong: "several overdue payments". Right: list each payment with ID, due date, amount, and status.
+• note_description and notify_message can be long — completeness is more important than brevity. Voice replies stay brief; written note/notify content stays detailed.
 
 CRITICAL PRIVACY & BEHAVIORAL RULES:
 1. NEVER mention table names, SQL queries, database calls, tool execution, function calling, or any backend search mechanism. Present findings naturally.
@@ -368,9 +483,16 @@ ${dealContextText}
 -------------------------
 ${uiDataSection}
 Instructions:
-• Keep responses brief and action-oriented.
+• Keep responses brief and action-oriented. Always speak your answers aloud — the user is in voice mode and cannot see text.
 • Speak in English unless the user explicitly requests another language.
-• When triggering any function call, do NOT speak confirmation messages. Stay silent after a function call succeeds.
-• Only speak when: providing deal information, asking necessary clarifying questions, or when no tool action is triggered.
+• Answer directly from the deal context when the data is already available. Only use query_table when you need data not in the context.
+• For query_table and web_search: do NOT speak before or while the tool runs. After the tool returns results, you MUST immediately speak the full answer with specific facts and numbers. Never say "here are the details" or "I have provided the details" without actually stating them aloud.
+• For create_deal_note only: stay completely silent after the tool completes (the UI handles confirmation).
+• Note and notify modals are previews only. The user or you via manage_deal_modals must save_note or send_notify to persist. You may close or cancel modals when the user asks.
+• When you receive a [MODAL_OUTCOME] message, absorb it silently — update your understanding of what the user did (saved, sent, or cancelled) but NEVER speak, acknowledge aloud, or respond until the user speaks again.
+• Voice continues normally while modals are open — keep answering questions and use manage_deal_modals to save, send, or dismiss modals on request.
+• When writing note_description: maximum detail, numbered items, one record per line. Example: "1. SET-2025-001: Due 1/15/2025, 12.5M ZAR, Status: Full Rollover Approved." Include every record from the data — never a wall of text and never a partial summary.
+• When writing notify_message: Write a formal, professional email. Include a clear greeting, the full context of the notification, and a professional sign-off. Ensure all required facts, figures, and records are fully detailed within the email structure.
+• Notifications are shown as email previews. Use recipient emails from DealParticipants in the static context. Format each as "Name (Role) <email@company.com>".
 • If the user asks you to "stop," "hold on," "wait," or "pause," acknowledge politely and pause.`;
 }

@@ -1,6 +1,7 @@
 import { Patient, VitalSigns, Medication, LabResult, InpatientAdmissionData } from '@/types/patient';
 import { authService } from './authService';
 import { nanoid } from 'nanoid';
+import { formatParticipantsForPrompt, getDealParticipants } from '@/utils/dealParticipants';
 
 export const isPrescriptionActiveFlag = (activeFlag: unknown): boolean =>
   String(activeFlag ?? '').trim().toLowerCase() === 'true' ||
@@ -628,12 +629,22 @@ class ApiServiceState {
 
     initialInpatients.forEach(p => {
       const deal = dealDetailsMap[p.consultationId];
-      if (deal) Object.assign(p, deal);
+      if (deal) {
+        const participants = getDealParticipants(p.consultationId);
+        Object.assign(p, deal, {
+          dealParticipants: formatParticipantsForPrompt(participants),
+        });
+      }
       this.patients.set(p.consultationId, p);
     });
     initialOutpatients.forEach(p => {
       const deal = dealDetailsMap[p.consultationId];
-      if (deal) Object.assign(p, deal);
+      if (deal) {
+        const participants = getDealParticipants(p.consultationId);
+        Object.assign(p, deal, {
+          dealParticipants: formatParticipantsForPrompt(participants),
+        });
+      }
       this.patients.set(p.consultationId, p);
     });
 
