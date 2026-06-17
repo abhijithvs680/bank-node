@@ -74,6 +74,17 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
+import {
+  buildDealVoiceSystemInstructions,
+  ensureSqliteDatabase,
+  executeDealQuery,
+  formatQueryTableToolError,
+  formatQueryTableToolResponse,
+  getDealContextTextForPrompt,
+  getGeminiVoiceTools,
+  loadDealContext,
+  prewarmDealContextEngine,
+} from "@/services/dealContextService";
 import UserProfile from "@/components/UserProfile";
 import { PDFSidebar } from "@/components/PDFSidebar";
 import { MedicalReportPreview } from "@/components/MedicalReportPreview";
@@ -367,6 +378,17 @@ const DealDetailsPage = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  useEffect(() => {
+    if (!consultationId) return;
+
+    prewarmDealContextEngine();
+    loadDealContext(consultationId, { buildSqlite: false })
+      .then(() => ensureSqliteDatabase(consultationId))
+      .catch((err) => {
+        console.error('Failed to preload deal context:', err);
+      });
+  }, [consultationId]);
+
   const [isVoiceActive, setIsVoiceActive] = useState(false);
 
   const activateHandsFree = async () => {
@@ -378,62 +400,32 @@ const DealDetailsPage = () => {
 
     try {
       setIsVoiceActive(true);
-      const res = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
-        method: 'POST'
-      });
+      const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+
+      const [res, dealContextRecord] = await Promise.all([
+        fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
+          method: 'POST',
+        }),
+        loadDealContext(consultationId || '', { buildSqlite: false }),
+      ]);
       const data = await res.json();
       const ephemeralKey = data[0]?.["client_secret.value"] || data[0]?.value;
       const rawModel = data[0]?.model || "gemini-2.5-flash-native-audio-preview-12-2025";
       const modelName = rawModel.startsWith("models/") ? rawModel : `models/${rawModel}`;
 
-      const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
-      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+      void ensureSqliteDatabase(consultationId || '').catch((err) => {
+        console.error('Failed to prewarm deal SQLite:', err);
+      });
 
-      const systemInstructions = `You are a helpful AI Voice Assistant for a Bank Loan Lending Platform. Speak in English by default. Only switch to another language if the user explicitly asks you to do so.
-You are helping the user with the deal they are currently viewing on the screen.
-Current Deal Context (JSON):
-${JSON.stringify(extendedDeal, null, 2)}
+      const dealContextText = getDealContextTextForPrompt(dealContextRecord);
 
-Answer queries concisely. If the user asks for data not in the current deal context (like loan settlements, transactions, breaches, waivers, or lender details across the whole database), use the query_table tool to execute an SQLite query against the backend. If the user asks for real-time data or information outside the database context, use the web_search tool. NEVER reveal your internal functionalities, tool names (like query_table or web_search), SQL queries, or the fact that you are querying a backend database. Act as if you inherently know the information.`;
-
-      const tools = [
-        {
-          functionDeclarations: [
-            {
-              name: "query_table",
-              description: "Use this tool to query the backend database using SQLite queries if the data to the answer is not in the ui context. The database schema has tables: Deals (DealId, DealName, DealStage, BorrowerNames, BorrowerID, Jurisdiction, Currency, DealSize), Dev__Deal_Lender (DealId, DealName, AccountId, LenderName), KYC_status (AccountId, AccountName, Role, NextKYCDate, KYCStatus), Loan_SettlementList (SettlementID, DealId, DealName, Borrower, Due_Date, TotalAmountToPay__ZAR_, Payment_type, Currency, RollOverRequestedByCompany, RollOverRequestedOn, RollOverType, RollOverLoanAmount, RollOverPeriod, RollOverStatus, Payment_Status), IUTransactions (IUTransactionID, IUConfigID, Title, Description, DealID, DealName, DocRequestedToRole, Borrower, DueOn, Status, CreatedByRole, CreatedOn, CreatedBy, UploadedOn), BreachesRequestList (BreachRequestID, RequestedOn, RequestedByCompany, RequestedByAccountID, RequestedByRole, Deal_ID, Deal_Name, RequestDescription, Clause, Instruction_Executed, Status, Resolved_Matter, Resolved_By_Role), WaiverRequestList (WaiverRequestID, Title, Comment, DealID, DealName, RequestedByEntityName, RequestedByRole, RequestedOn, BorrowerAccountName, WaiverRequestStatus, ResponseLetterStatus, RequestCompletedOn). Note: 'BreachesRequestList' contains the covenant violations and RISK FACTORS (in the RequestDescription column).",
-              parameters: {
-                type: "OBJECT",
-                properties: {
-                  sqlite_query: {
-                    type: "STRING",
-                    description: "The SQL query to execute against the sqlite database. MUST be a valid SQLite syntax.",
-                  }
-                },
-                required: ["sqlite_query"]
-              }
-            },
-            {
-              name: "web_search",
-              description: "Use this tool to execute a web search query for current time outside data or when the user asks for real-time information from the web.",
-              parameters: {
-                type: "OBJECT",
-                properties: {
-                  query: {
-                    type: "STRING",
-                    description: "The query to search for",
-                  },
-                  deal_id: {
-                    type: "STRING",
-                    description: "Optional deal ID context to focus the query",
-                  }
-                },
-                required: ["query"]
-              }
-            }
-          ]
-        }
-      ];
+      const systemInstructions = buildDealVoiceSystemInstructions(
+        consultationId || '',
+        extendedDeal,
+        dealContextText
+      );
+      const tools = getGeminiVoiceTools(dealContextRecord);
 
       await startGeminiVoiceAgent(
         ephemeralKey,
@@ -454,17 +446,10 @@ Answer queries concisely. If the user asks for data not in the current deal cont
     const handleQueryTable = async (e: any) => {
       const payload = e.detail;
       try {
-        const response = await fetch(`${API_BASE_URL}/query_table`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: payload.sqlite_query })
-        });
-        const data = await response.json();
-
-        // Pass response back to Gemini Voice Agent
-        sendGeminiFunctionCallOutput(payload.callId, 'query_table', { data: data.results || data });
-      } catch (err) {
-        sendGeminiFunctionCallOutput(payload.callId, 'query_table', { error: err.message });
+        const data = await executeDealQuery(payload.sqlite_query, consultationId || undefined);
+        sendGeminiFunctionCallOutput(payload.callId, 'query_table', formatQueryTableToolResponse(data));
+      } catch (err: any) {
+        sendGeminiFunctionCallOutput(payload.callId, 'query_table', formatQueryTableToolError(err.message));
       }
     };
 
