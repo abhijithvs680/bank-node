@@ -12,6 +12,7 @@ import DealDetailsPage from "./pages/DealDetailsPage";
 import SearchPage from "./pages/SearchPage";
 import BorrowerDetailsPage from "./pages/BorrowerDetailsPage";
 import MarketScanPage from "./pages/MarketScanPage";
+import ClauseManagementPage from "./pages/ClauseManagementPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/borrower/:consultationId" element={<ProtectedRoute><BorrowerDetailsPage /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
               <Route path="/market-scan" element={<ProtectedRoute><MarketScanPage /></ProtectedRoute>} />
+              <Route path="/clause-management" element={<ProtectedRoute><ClauseManagementPage /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

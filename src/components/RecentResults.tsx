@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot } from 'lucide-react';
+import { FileText, Upload, Settings, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot } from 'lucide-react';
 import { LabResult } from '@/types/patient';
 import { PDFSidebar } from './PDFSidebar';
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RelativeTime } from '@/components/RelativeTime';
 import { Touchable } from '@/components/ui/touchable';
 
@@ -373,6 +374,7 @@ export const RecentResults = ({
   onAskAI,
 }: RecentResultsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [openFileId, setOpenFileId] = useState<string | null>(null);
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
@@ -599,25 +601,35 @@ export const RecentResults = ({
         <div>
           <h3 className="text-[1.125rem] font-semibold text-[#1a2256]">Documents</h3>
         </div>
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="outline"
-          className="flex items-center gap-2 rounded-[10px] px-3 py-1.5 text-[0.875rem] font-semibold shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-          size="sm"
-          disabled={uploadedFiles.some(f => f.isUploading)}
-        >
-          {uploadedFiles.some(f => f.isUploading) ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Upload className="w-4 h-4" />
-              Upload Document
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate('/clause-management')}
+            variant="outline"
+            className="flex items-center justify-center rounded-[10px] w-9 h-9 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all active:scale-95 border border-slate-200"
+            title="Clause Management"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            variant="outline"
+            className="flex items-center gap-2 rounded-[10px] px-3 py-1.5 text-[0.875rem] font-semibold shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            size="sm"
+            disabled={uploadedFiles.some(f => f.isUploading)}
+          >
+            {uploadedFiles.some(f => f.isUploading) ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Upload Document
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 medical-scroll max-h-[600px] overflow-y-auto pr-2">
