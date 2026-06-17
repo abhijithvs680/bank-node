@@ -346,7 +346,7 @@ export const PDFSidebar = ({
               <SheetTitle className="text-base font-semibold text-foreground truncate">
                 {currentReport.fileName}
               </SheetTitle>
-              {patientName && (
+              {patientName && patientName !== 'Document Analysis' && (
                 <p className="text-xs text-muted-foreground truncate">Patient: {patientName}</p>
               )}
             </div>
@@ -646,12 +646,12 @@ export const PDFSidebar = ({
             </div>
 
             {/* Floating Glassmorphism Zoom Controls - Bottom Center */}
-     {isImage ? (        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
               <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/70 dark:bg-black/50 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg shadow-black/10">
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={handleZoomOut}
+                  onClick={isImage ? zoomOut : pdfZoomOut}
                   className="h-9 w-9 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20"
                   aria-label="Zoom out"
                 >
@@ -659,13 +659,13 @@ export const PDFSidebar = ({
                 </Button>
                 
                 <span className="text-sm font-medium min-w-[50px] text-center text-foreground">
-                  {currentZoom}%
+                  {isImage ? Math.round(imageZoom * 100) : pdfZoom}%
                 </span>
                 
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={handleZoomIn}
+                  onClick={isImage ? zoomIn : pdfZoomIn}
                   className="h-9 w-9 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20"
                   aria-label="Zoom in"
                 >
@@ -675,14 +675,14 @@ export const PDFSidebar = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={handleResetZoom}
+                  onClick={isImage ? resetZoom : resetPdfZoom}
                   className="h-9 w-9 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20"
                   aria-label="Reset zoom"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </Button>
               </div>
-            </div> ) : (  <div></div>    )}
+            </div>
           </div>
         </div>
 

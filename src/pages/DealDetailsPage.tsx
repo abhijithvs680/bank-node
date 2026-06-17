@@ -178,7 +178,7 @@ const DealDetailsPage = () => {
     setActiveDocumentChat({ fileId, fileName, sessionId: newSessionId });
     setQuerySessionId(newSessionId);
     setChatMessages([
-      { role: 'assistant', text: `Hi! How can I assist you with the document: ${fileName}?` },
+      { role: 'assistant', text: `Hi! How can I assist you with ${fileName}?` },
     ]);
     setIsQueryChatOpen(true);
     
@@ -201,6 +201,7 @@ const DealDetailsPage = () => {
     }
 
     if (activeDocumentChat) return; // Handled by handleAskAI
+    if (querySessionId) return; // Add this line to prevent infinite loop
 
     const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     setQuerySessionId(newSessionId);

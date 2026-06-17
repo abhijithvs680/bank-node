@@ -58,7 +58,6 @@ const CHECKLIST_ITEMS = [
   'Tenor / Maturity',
   'Interest Margin (Applicable Margin)',
   'Base Rate',
-  'Repayment',
   'Debt to EBITDA Covenant (Max Leverage)',
   'Interest Coverage Ratio Covenant (Min ICR)',
   'Testing Frequency',
@@ -76,7 +75,6 @@ const CHECKLIST_ITEMS = [
   'Non-Payment Grace Period (Event of Default)',
   'Cross-Default Threshold',
   'Amendment Approval — General',
-  'Amendment Approval — Super Majority Items',
   'Amendment Approval — All Lenders',
   'Consent Response Period',
   'Governing Law',
@@ -190,14 +188,20 @@ interface UploadedFileRowProps {
   file: UploadedFile;
   isOpen: boolean;
   onToggle: () => void;
-  onClauseClick?: (fileId: string | undefined, pageNumber: number, boundingBoxes?: BoundingBox[]) => void;
+  onClauseClick?: (fileId: string | undefined, fileName: string, pageNumber: number, boundingBoxes?: BoundingBox[]) => void;
   onAskAI?: (fileId: string, fileName: string) => void;
 }
 
 const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: UploadedFileRowProps) => {
   const isProcessing = file.isUploading;
   const hasError = !!file.error;
-  const results = file.checklistResults || [];
+  const rawResults = file.checklistResults || [];
+  const results = rawResults.filter(r => {
+    const clauseName = r.clause.split('|')[0].trim().toLowerCase();
+    return clauseName !== 'repayment' && 
+           clauseName !== 'amendment approval — super majority items' && 
+           clauseName !== 'amendment approval - super majority items';
+  });
   
   const foundItems = results.filter(r => r.achieved === true);
   let missingItems = results.filter(r => r.achieved === false);
@@ -262,7 +266,7 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI }: Upl
                 key={`found-${idx}`}
                 onClick={() => {
                   if (onClauseClick && item.page_numbers && item.page_numbers.length > 0) {
-                    onClauseClick(file.fileId, item.page_numbers[0], item.bounding_boxes);
+                    onClauseClick(file.fileId, file.name, item.page_numbers[0], item.bounding_boxes);
                   }
                 }}
                 className={`flex items-start gap-3 px-3 py-2 rounded-[10px] border border-[#e0e3f5] bg-white ${item.page_numbers && item.page_numbers.length > 0 ? 'cursor-pointer hover:bg-slate-50 transition-colors' : ''}`}
@@ -373,6 +377,7 @@ export const RecentResults = ({
   const [openFileId, setOpenFileId] = useState<string | null>(null);
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
   const [viewingFileUrl, setViewingFileUrl] = useState<string | null>(null);
+  const [viewingFileName, setViewingFileName] = useState<string>('');
   const [viewingTargetPage, setViewingTargetPage] = useState<number | undefined>(undefined);
   const [viewingTargetBoxes, setViewingTargetBoxes] = useState<BoundingBox[]>([]);
 
@@ -426,9 +431,10 @@ export const RecentResults = ({
     fetchDealFiles();
   }, [admissionId]);
 
-  const handleClauseClick = (fileId: string | undefined, pageNumber: number, boundingBoxes?: BoundingBox[]) => {
+  const handleClauseClick = (fileId: string | undefined, fileName: string, pageNumber: number, boundingBoxes?: BoundingBox[]) => {
     if (fileId) {
       setViewingFileUrl(`${API_BASE_URL}/download_document?deal_id=${admissionId}&file_id=${fileId}`);
+      setViewingFileName(fileName);
     }
     setViewingTargetPage(pageNumber);
     setViewingTargetBoxes(boundingBoxes || []);
@@ -613,10 +619,12 @@ export const RecentResults = ({
           isOpen={!!viewingFileUrl}
           onClose={() => {
             setViewingFileUrl(null);
+            setViewingFileName('');
             setViewingTargetPage(undefined);
             setViewingTargetBoxes([]);
           }}
           pdfUrl={viewingFileUrl}
+          testName={viewingFileName}
           targetPage={viewingTargetPage}
           targetBoxes={viewingTargetBoxes}
           patientName="Document Analysis"
