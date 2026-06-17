@@ -741,6 +741,143 @@ const FinancialTableCard = ({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const formatNumberWithCommas = (num: number, decimals: number): string => {
+  const parts = num.toFixed(decimals).split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
+};
+
+const adaptToZAR = (data: AnalysisData): AnalysisData => {
+  const isUSA = data.country === "USA";
+  const isIndia = data.country === "India";
+  
+  const tableRate = isIndia ? 2.2 : (isUSA ? 18.0 : 1.0);
+
+  const convertStringValue = (val: string): string => {
+    if (!val) return val;
+    // Replace Rupee symbol
+    if (val.includes("₹")) {
+      const numMatch = val.match(/₹\s*([\d,.]+)/);
+      if (numMatch) {
+        const num = parseFloat(numMatch[1].replace(/,/g, ""));
+        if (val.includes("Cr") || val.includes("crore")) {
+          // Crore to Millions: multiply by 2.2
+          const converted = num * 2.2;
+          return `R${formatNumberWithCommas(converted, 1)}M`;
+        } else {
+          const converted = num * 0.22;
+          return `R${formatNumberWithCommas(converted, 2)}`;
+        }
+      }
+      return val.replace(/₹/g, "R");
+    }
+    
+    // Replace Dollar symbol
+    if (val.includes("$")) {
+      const numMatch = val.match(/\$\s*([\d,.]+)([TBM]?)/);
+      if (numMatch) {
+        const num = parseFloat(numMatch[1].replace(/,/g, ""));
+        const suffix = numMatch[2];
+        const converted = num * 18.0;
+        if (suffix === "T") {
+          return `R${formatNumberWithCommas(converted, 2)}T`;
+        } else if (suffix === "B") {
+          return `R${formatNumberWithCommas(converted, 1)}B`;
+        } else if (suffix === "M") {
+          return `R${formatNumberWithCommas(converted, 1)}M`;
+        } else {
+          return `R${formatNumberWithCommas(converted, 2)}`;
+        }
+      }
+      return val.replace(/\$/g, "R");
+    }
+
+    // Convert freeform text mentions
+    let text = val;
+    text = text.replace(/₹\s*(\d+(\.\d+)?)\s*Cr/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 2.2, 1)}M`);
+    text = text.replace(/₹\s*(\d+(\.\d+)?)\s*crore/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 2.2, 1)}M`);
+    text = text.replace(/₹\s*(\d+(\.\d+)?)/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 0.22, 2)}`);
+    text = text.replace(/\$\s*(\d+(\.\d+)?)\s*B/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 18.0, 1)}B`);
+    text = text.replace(/\$\s*(\d+(\.\d+)?)\s*T/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 18.0, 2)}T`);
+    text = text.replace(/\$\s*(\d+(\.\d+)?)\s*M/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 18.0, 1)}M`);
+    text = text.replace(/\$\s*(\d+(\.\d+)?)/gi, (_, n) => `R${formatNumberWithCommas(parseFloat(n) * 18.0, 2)}`);
+    return text;
+  };
+
+  const convertTable = (table?: FinancialTable): FinancialTable | undefined => {
+    if (!table) return undefined;
+    return {
+      headers: table.headers,
+      rows: table.rows.map(row => {
+        const label = row.label.replace("EPS in Rs", "EPS in ZAR");
+        return {
+          label,
+          values: row.values.map(v => {
+            if (typeof v === "number") {
+              return parseFloat((v * tableRate).toFixed(2));
+            }
+            if (typeof v === "string") {
+              return convertStringValue(v);
+            }
+            return v;
+          })
+        };
+      })
+    };
+  };
+
+  return {
+    ...data,
+    marketCap: convertStringValue(data.marketCap),
+    aiSummary: convertStringValue(data.aiSummary),
+    financials: data.financials.map(f => ({
+      ...f,
+      value: convertStringValue(f.value)
+    })),
+    strengths: data.strengths.map(s => convertStringValue(s)),
+    risks: data.risks.map(r => convertStringValue(r)),
+    recentNews: data.recentNews.map(n => ({
+      ...n,
+      headline: convertStringValue(n.headline)
+    })),
+    creditIndicators: data.creditIndicators.map(c => ({
+      ...c,
+      value: convertStringValue(c.value)
+    })),
+    lenderRiskComment: convertStringValue(data.lenderRiskComment),
+    debtProfile: {
+      ...data.debtProfile,
+      totalDebt: convertStringValue(data.debtProfile.totalDebt),
+      netDebt: convertStringValue(data.debtProfile.netDebt),
+      cashPosition: convertStringValue(data.debtProfile.cashPosition),
+      nearestMaturity: convertStringValue(data.debtProfile.nearestMaturity),
+      facilities: data.debtProfile.facilities.map(f => ({
+        ...f,
+        amount: convertStringValue(f.amount)
+      })),
+      creditHistory: data.debtProfile.creditHistory.map(h => ({
+        ...h,
+        amount: convertStringValue(h.amount)
+      }))
+    },
+    revenueHistory: data.revenueHistory.map(r => ({
+      ...r,
+      revenue: parseFloat((r.revenue * tableRate).toFixed(1)),
+      ebitda: parseFloat((r.ebitda * tableRate).toFixed(1))
+    })),
+    aiInsights: data.aiInsights.map(i => ({
+      ...i,
+      title: convertStringValue(i.title),
+      body: convertStringValue(i.body)
+    })),
+    quarterlyResults: convertTable(data.quarterlyResults),
+    annualPL: convertTable(data.annualPL),
+    balanceSheet: convertTable(data.balanceSheet),
+    cashFlows: convertTable(data.cashFlows),
+    shareholdingPattern: data.shareholdingPattern
+  };
+};
+
 const MarketScanPage = () => {
   const navigate = useNavigate();
   const { logoUrl, appName } = useBranding();
@@ -768,7 +905,7 @@ const MarketScanPage = () => {
     const found = findCompany(term);
     setIsLoading(false);
     if (found) {
-      setResult(found);
+      setResult(adaptToZAR(found));
       setTimeout(() => {
         setAnalysisActive(true);
         resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1290,7 +1427,7 @@ const MarketScanPage = () => {
               <FinancialTableCard
                 id="quarters"
                 title="Quarterly Results"
-                subtitle="Figures in Rs. Crores / Consolidated"
+                subtitle={result.country === "India" ? "Figures in ZAR Millions / Consolidated" : "Figures in ZAR Billions / Consolidated"}
                 tableData={result.quarterlyResults}
               />
             )}
@@ -1299,7 +1436,7 @@ const MarketScanPage = () => {
               <FinancialTableCard
                 id="profit-loss"
                 title="Profit & Loss"
-                subtitle="Annual Figures in Rs. Crores / Consolidated"
+                subtitle={result.country === "India" ? "Annual Figures in ZAR Millions / Consolidated" : "Annual Figures in ZAR Billions / Consolidated"}
                 tableData={result.annualPL}
               />
             )}
@@ -1308,7 +1445,7 @@ const MarketScanPage = () => {
               <FinancialTableCard
                 id="balance-sheet"
                 title="Balance Sheet"
-                subtitle="Consolidated Figures in Rs. Crores"
+                subtitle={result.country === "India" ? "Consolidated Figures in ZAR Millions" : "Consolidated Figures in ZAR Billions"}
                 tableData={result.balanceSheet}
               />
             )}
@@ -1317,7 +1454,7 @@ const MarketScanPage = () => {
               <FinancialTableCard
                 id="cash-flow"
                 title="Cash Flows"
-                subtitle="Consolidated Figures in Rs. Crores"
+                subtitle={result.country === "India" ? "Consolidated Figures in ZAR Millions" : "Consolidated Figures in ZAR Billions"}
                 tableData={result.cashFlows}
               />
             )}

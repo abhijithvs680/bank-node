@@ -35,6 +35,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowUpRight,
+  Bell,
   Bot,
   BrainCircuit,
   Calendar,
@@ -60,6 +61,7 @@ import {
   Play,
   Plus,
   Printer,
+  Search,
   Send,
   Settings,
   Smartphone,
@@ -110,6 +112,132 @@ import {
 import { getPatientListPath, getPatientTypeFromPath } from '@/utils/patientRoutes';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
+interface AILogEntry {
+  timestamp: string;
+  eventType: "Reminder" | "Alert" | "Analysis" | "Compliance" | "Communication";
+  description: string;
+  status: "Sent" | "Completed" | "Pending" | "Detected" | "Resolved" | "Failed";
+}
+
+const AI_LOGS_DB: Record<string, AILogEntry[]> = {
+  "1001": [
+    { timestamp: "2026-06-17 10:30", eventType: "Reminder", description: "Payment reminder sent to Orion Manufacturing Holdings Ltd. (Borrower) regarding an overdue installment of R250,000 due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).", status: "Sent" },
+    { timestamp: "2026-06-16 14:15", eventType: "Compliance", description: "Missing FY25 Audited Financial Statement detected for Orion Manufacturing Holdings Ltd. Automated notification sent to Sarah Johnson (Finance Manager) and Rajesh Mehta (Compliance Lead).", status: "Detected" },
+    { timestamp: "2026-06-15 09:00", eventType: "Communication", description: "Document upload reminder sent to Orion Manufacturing Holdings Ltd. regarding signed Term Sheet amendment. Notification sent to John Smith (CFO).", status: "Sent" },
+    { timestamp: "2026-06-14 11:30", eventType: "Analysis", description: "AI Loan Health Score recalculated for Orion Manufacturing Holdings Ltd.: 72/100 (Low Risk). Factors: Repeated DSCR covenant breach and overdue principal repayment concerns.", status: "Completed" },
+    { timestamp: "2026-06-12 16:45", eventType: "Alert", description: "Leverage covenant headroom drop below 150bps warning generated for Orion Manufacturing Holdings Ltd. Alert dispatched to Treasury Team.", status: "Resolved" }
+  ],
+  "6008": [
+    { timestamp: "2026-06-17 10:30", eventType: "Reminder", description: "Payment reminder sent to Apollo Energy Group Holdings (Borrower) regarding an overdue installment of $250,000 due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).", status: "Sent" },
+    { timestamp: "2026-06-16 14:15", eventType: "Compliance", description: "Missing FY25 Audited Financial Statement detected for Apollo Energy Group Holdings. Automated notification sent to Sarah Johnson (Finance Manager) and Rajesh Mehta (Compliance Lead).", status: "Detected" },
+    { timestamp: "2026-06-15 09:00", eventType: "Communication", description: "Document upload reminder sent to Apollo Energy Group Holdings regarding signed Term Sheet amendment. Notification sent to John Smith (CFO).", status: "Sent" },
+    { timestamp: "2026-06-14 11:30", eventType: "Analysis", description: "AI Loan Health Score recalculated for Apollo Energy Group Holdings: 78/100 (Low Risk). Factors: Strong contracted cash flows backed by PPAs offset by moderate leverage concerns.", status: "Completed" },
+    { timestamp: "2026-06-12 16:45", eventType: "Alert", description: "Leverage covenant headroom drop below 150bps warning generated for Apollo Energy Group Holdings. Alert dispatched to Treasury Team.", status: "Resolved" }
+  ],
+  "6009": [
+    { timestamp: "2026-06-17 09:15", eventType: "Reminder", description: "Document upload reminder sent to Horizon Infrastructure Corp (Borrower) regarding updated audited financial statements due on 30 Jun 2026. Notification sent to Amit Kumar (VP Finance).", status: "Sent" },
+    { timestamp: "2026-06-16 11:00", eventType: "Analysis", description: "AI Loan Health Score recalculated for Horizon Infrastructure Corp: 85/100 (Minimal Risk). Factors: Negligible debt/EBITDA of 0.2x and high liquidity margins.", status: "Completed" },
+    { timestamp: "2026-06-15 15:30", eventType: "Communication", description: "Automatic welcome notification and onboarding guidelines sent to Rajesh Patel (Compliance Officer) at Horizon Infrastructure Corp.", status: "Sent" },
+    { timestamp: "2026-06-14 10:00", eventType: "Compliance", description: "KYC verification completed by AI compliance parser for Horizon Infrastructure Corp. All primary and secondary beneficial owner documents verified.", status: "Completed" }
+  ],
+  "6007": [
+    { timestamp: "2026-06-17 11:45", eventType: "Alert", description: "Interest coverage ratio (ICR) below 2.0x threshold warning generated for Apex Retail Group Ltd (current: 1.8x). Alert sent to Credit Risk Division.", status: "Detected" },
+    { timestamp: "2026-06-16 16:20", eventType: "Reminder", description: "Payment reminder sent to Apex Retail Group Ltd (Borrower) regarding an overdue quarterly interest installment of £180,000 due on 15 Jun 2026. Reminder sent to Sarah Peterson (Head of Treasury) and Michael Botha (Finance Director).", status: "Sent" },
+    { timestamp: "2026-06-15 13:10", eventType: "Compliance", description: "Missing Q1 Management Accounts detected for Apex Retail Group Ltd. Notification sent to Michael Botha (Finance Director).", status: "Detected" },
+    { timestamp: "2026-06-14 09:30", eventType: "Analysis", description: "AI Loan Health Score recalculated for Apex Retail Group Ltd: 64/100 (Medium Risk). Factors: High leverage of 3.8x and compressed operating margins.", status: "Completed" },
+    { timestamp: "2026-06-12 14:00", eventType: "Communication", description: "On-site audit schedule reminder sent to Sarah Peterson (Head of Treasury) at Apex Retail Group Ltd for scheduled inspection on 24 Jun 2026.", status: "Sent" }
+  ]
+};
+
+const DEFAULT_LOGS: AILogEntry[] = [
+  { timestamp: "2026-06-17 10:00", eventType: "Reminder", description: "Payment reminder sent to ABC Manufacturing Ltd. (Borrower) regarding an overdue installment of $250,000 due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).", status: "Sent" },
+  { timestamp: "2026-06-16 14:00", eventType: "Compliance", description: "Missing financial statement detected for ABC Manufacturing Ltd. Notification sent to Sarah Johnson (Finance Manager).", status: "Detected" },
+  { timestamp: "2026-06-15 09:00", eventType: "Communication", description: "Document upload reminder sent to ABC Manufacturing Ltd. regarding signed term sheet. Notification sent to John Smith (CFO).", status: "Sent" },
+  { timestamp: "2026-06-14 11:00", eventType: "Analysis", description: "AI Loan Health Score recalculated for ABC Manufacturing Ltd.: 72/100 (Low Risk).", status: "Completed" },
+  { timestamp: "2026-06-12 15:00", eventType: "Alert", description: "Leverage covenant headroom warning generated for ABC Manufacturing Ltd. Alert sent to Risk Officer.", status: "Resolved" }
+];
+
+const AILogsTab = ({ consultationId, localLogs }: { consultationId: string; localLogs?: Record<string, AILogEntry[]> }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const logs = (localLogs && localLogs[consultationId]) || AI_LOGS_DB[consultationId] || DEFAULT_LOGS;
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      return log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.eventType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.status.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [logs, searchTerm]);
+
+  const getEventIcon = (type: string) => {
+    switch (type) {
+      case "Reminder":
+        return <Bell className="w-4 h-4 text-blue-600" />;
+      case "Alert":
+        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case "Analysis":
+        return <Activity className="w-4 h-4 text-emerald-600" />;
+      case "Compliance":
+        return <FileText className="w-4 h-4 text-amber-600" />;
+      case "Communication":
+        return <Send className="w-4 h-4 text-purple-600" />;
+      default:
+        return <Bell className="w-4 h-4 text-slate-600" />;
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-[24px] border border-[#e0e3f5] p-6 shadow-sm h-full flex flex-col">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h3 className="text-[1.125rem] font-bold text-[#1a2256]">Activity Logs</h3>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <div className="relative group flex-1">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#1a2256] transition-colors" />
+          <input
+            type="text"
+            placeholder="Search logs by description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 text-[14px] font-medium rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-[#1a2256] focus:ring-4 focus:ring-[#1a2256]/5 transition-all outline-none"
+          />
+        </div>
+      </div>
+
+      {filteredLogs.length > 0 ? (
+        <div className="relative pl-6 border-l border-slate-100 space-y-6 ml-4 py-2">
+          {filteredLogs.map((log, index) => (
+            <div key={index} className="relative">
+              <div className="absolute -left-[35px] top-1.5 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+                {getEventIcon(log.eventType)}
+              </div>
+
+              <div className="bg-slate-50/30 border border-slate-100 rounded-xl p-4 hover:bg-slate-50/70 transition-colors">
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[12px] font-bold text-slate-400">{log.timestamp}</span>
+                  </div>
+                  <p className="text-[14px] text-slate-700 font-semibold leading-relaxed">
+                    {log.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 border border-dashed border-slate-200 rounded-2xl bg-slate-50/20">
+          <p className="text-slate-400 font-medium text-[14px]">No logs found matching search criteria.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DealDetailsPage = () => {
   const { consultationId } = useParams();
   const navigate = useNavigate();
@@ -119,6 +247,11 @@ const DealDetailsPage = () => {
     [location.pathname],
   );
   const [patientData, setPatientData] = useState<Patient[]>([]);
+  const [localLogs, setLocalLogs] = useState<Record<string, AILogEntry[]>>(AI_LOGS_DB);
+  const [isDemoSheetOpen, setIsDemoSheetOpen] = useState(false);
+  const [demoTimer, setDemoTimer] = useState(10);
+  const [demoState, setDemoState] = useState<'preview' | 'sent' | 'cancelled'>('preview');
+  const demoIntervalRef = useRef<any>(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -890,6 +1023,94 @@ Answer queries concisely. If the user asks for data not in the current deal cont
       console.error('Error refreshing visit history:', error);
     }
   };
+
+  // Demo Bottom Sheet & Countdown handlers
+  const triggerSend = useCallback(() => {
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+    }
+    setDemoState('sent');
+
+    const activePatient = patientData[0];
+    const borrowerName = activePatient?.borrower || 'ABC Manufacturing Ltd.';
+    const currency = activePatient?.currency || 'USD';
+    let installment = '$250,000';
+    if (currency === 'ZAR') installment = 'R250,000';
+    else if (currency === 'GBP') installment = '£180,000';
+    else if (currency === 'EUR') installment = '€250,000';
+
+    const now = new Date();
+    const formattedDate = format(now, 'yyyy-MM-dd HH:mm');
+    const newEntry: AILogEntry = {
+      timestamp: formattedDate,
+      eventType: "Reminder",
+      description: `Payment reminder sent to ${borrowerName} (Borrower) regarding an overdue installment of ${installment} due on 15 Jun 2026. Reminder sent to John Smith (CFO) and Sarah Johnson (Finance Manager).`,
+      status: "Sent"
+    };
+
+    setLocalLogs(prevLogs => {
+      const dealId = consultationId || '';
+      const existing = prevLogs[dealId] || DEFAULT_LOGS;
+      return {
+        ...prevLogs,
+        [dealId]: [newEntry, ...existing]
+      };
+    });
+
+    toast({
+      title: "Notification Sent",
+      description: `Payment reminder for ${borrowerName} successfully dispatched.`,
+    });
+  }, [patientData, consultationId, toast]);
+
+  const handleOpenDemoAlert = () => {
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+    }
+    setDemoTimer(10);
+    setDemoState('preview');
+    setIsDemoSheetOpen(true);
+
+    demoIntervalRef.current = setInterval(() => {
+      setDemoTimer(prev => {
+        if (prev <= 1) {
+          triggerSend();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleForceSend = () => {
+    triggerSend();
+  };
+
+  const handleCancelSend = () => {
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+    }
+    setDemoState('cancelled');
+    toast({
+      title: "Notification Cancelled",
+      description: "Automated payment reminder delivery has been cancelled.",
+    });
+  };
+
+  const handleCloseDemoSheet = () => {
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+    }
+    setIsDemoSheetOpen(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (demoIntervalRef.current) {
+        clearInterval(demoIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Handler to refresh lab results
   const handleRefreshLabResults = async () => {
@@ -1804,6 +2025,16 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Ask AI</span>
             </button>
 
+            {/* Demo button */}
+            <button
+              id="demo-alert-btn"
+              onClick={handleOpenDemoAlert}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] hover:from-[#7c3aed] hover:to-[#8b5cf6] text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(139,92,246,0.35)] hover:shadow-[0_6px_22px_rgba(139,92,246,0.5)] transition-all duration-200 active:scale-95"
+            >
+              <Play className="w-4 h-4" />
+              <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Demo</span>
+            </button>
+
             <VoiceRecorder
               admissionId={consultationId || ''}
               patientData={{
@@ -1892,6 +2123,14 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                   >
                     Finance / Legal Agreement
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="ai-logs"
+                    className="rounded-none border-b-2 border-transparent px-2 py-3 text-[1.06rem] font-medium text-muted-foreground transition-all 
+                               data-[state=active]:border-[#1a2256] data-[state=active]:text-[#1a2256] data-[state=active]:shadow-none data-[state=active]:bg-transparent 
+                               hover:text-foreground"
+                  >
+                    AI Logs
+                  </TabsTrigger>
                   {/* <TabsTrigger
                     value="history"
                     className="rounded-none border-b-2 border-transparent px-2 py-3 text-[1.06rem] font-medium text-muted-foreground transition-all 
@@ -1943,6 +2182,10 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                     onAskAI={handleAskAI}
                   />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="ai-logs" forceMount className={`mt-0 outline-none min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out ${activeTab !== 'ai-logs' ? 'hidden' : ''}`}>
+                <AILogsTab consultationId={consultationId || ""} localLogs={localLogs} />
               </TabsContent>
 
               {/* History Tab content */}
@@ -2377,7 +2620,105 @@ Answer queries concisely. If the user asks for data not in the current deal cont
             </button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog>      {/* Demo AI-Generated Notification compact floating card */}
+      {isDemoSheetOpen && demoState === 'preview' && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[9998] animate-in fade-in duration-300" />
+      )}
+      {isDemoSheetOpen && (
+        <div className="fixed right-6 top-6 z-[9999] w-[400px] bg-white rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.12)] border border-slate-100 transform transition-transform duration-300 animate-in slide-in-from-right duration-300 flex flex-col overflow-hidden">
+          <div className="p-5 flex flex-col gap-4">
+            {demoState === 'preview' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-green-600 animate-bounce" />
+                    <h4 className="text-[14px] font-bold text-slate-800 font-['Inter']">Payment Reminder</h4>
+                  </div>
+                  {/* Countdown Timer Badge */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg shrink-0">
+                    <Loader2 className="w-3.5 h-3.5 text-green-600 animate-spin" />
+                    <span className="text-[11px] font-bold text-green-700 font-['Inter']">{demoTimer}s</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  <p className="text-[13px] font-semibold text-slate-600 leading-relaxed font-['Inter']">
+                    A payment reminder is scheduled to be sent to the borrower <strong className="text-slate-800">{patient?.borrower || 'ABC Manufacturing Ltd.'}</strong> regarding an overdue installment payment of <strong className="text-slate-800">{patient?.currency === 'ZAR' ? 'R' : patient?.currency === 'GBP' ? '£' : patient?.currency === 'EUR' ? '€' : '$'}250,000</strong> due on 15 Jun 2026.
+                  </p>
+                  <div className="text-[11px] font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-lg p-2 flex flex-col gap-0.5">
+                    <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Recipients</span>
+                    <span className="text-slate-600 font-semibold">John Smith (CFO)</span>
+                    <span className="text-slate-600 font-semibold">Sarah Johnson (Finance Manager)</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                  <div
+                    className="bg-green-500 h-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${(demoTimer / 10) * 100}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    onClick={handleCancelSend}
+                    className="flex-1 rounded-[10px] h-9 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold text-slate-700 transition-all active:scale-[0.98]"
+                  >
+                    Cancel Send
+                  </button>
+                  <button
+                    onClick={handleForceSend}
+                    className="px-5 rounded-[10px] h-9 bg-green-600 hover:bg-green-700 text-white text-[12px] font-bold transition-all active:scale-[0.98]"
+                  >
+                    Send
+                  </button>
+                </div>
+              </>
+            )}
+
+            {demoState === 'sent' && (
+              <div className="py-2 text-center flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
+                <div className="w-12 h-12 rounded-full bg-green-50 border border-green-100 flex items-center justify-center text-green-600 shadow-sm">
+                  <CheckCircle className="w-7 h-7 animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-slate-800 font-['Inter']">Notification Sent Successfully</h4>
+                  <p className="text-[11px] text-slate-500 mt-1 font-medium font-['Inter'] px-2">
+                    Payment reminder has been logged and sent to John Smith (CFO) and Sarah Johnson (Finance Manager).
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseDemoSheet}
+                  className="mt-1 w-full py-2 bg-[#1a2256] hover:bg-[#1a2256]/90 text-white rounded-lg text-[12px] font-bold shadow-md transition-all active:scale-[0.98]"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+
+            {demoState === 'cancelled' && (
+              <div className="py-2 text-center flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
+                <div className="w-12 h-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-500 shadow-sm">
+                  <XIcon className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-slate-800 font-['Inter']">Notification Cancelled</h4>
+                  <p className="text-[11px] text-slate-500 mt-1 font-medium font-['Inter']">
+                    The alert transmission has been cancelled.
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseDemoSheet}
+                  className="mt-1 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[12px] font-bold shadow-md transition-all active:scale-[0.98]"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
 
     </div>
