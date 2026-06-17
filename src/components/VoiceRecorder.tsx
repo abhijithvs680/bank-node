@@ -132,6 +132,29 @@ export const VoiceRecorder = ({
     };
   }, []);
 
+  // Listen for web_search tool calls
+  useEffect(() => {
+    const handleWebSearch = async (e: any) => {
+      const payload = e.detail;
+      try {
+        const response = await fetch(`${API_BASE_URL}/web_search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: payload.query, deal_id: payload.deal_id || admissionId })
+        });
+        const data = await response.json();
+        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { data: data.results || data });
+      } catch (err: any) {
+        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { error: err.message });
+      }
+    };
+
+    document.addEventListener('ai-web-search-requested', handleWebSearch);
+    return () => {
+      document.removeEventListener('ai-web-search-requested', handleWebSearch);
+    };
+  }, [admissionId]);
+
   const handleButtonClick = async () => {
     if (!isRecording) {
       setLoading(true);
@@ -174,6 +197,24 @@ export const VoiceRecorder = ({
                   },
                   required: ["sqlite_query"]
                 }
+              },
+              {
+                name: "web_search",
+                description: "Use this tool to execute a web search query for current time outside data or when the user asks for real-time information from the web.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    query: {
+                      type: "STRING",
+                      description: "The query to search for",
+                    },
+                    deal_id: {
+                      type: "STRING",
+                      description: "Optional deal ID context to focus the query",
+                    }
+                  },
+                  required: ["query"]
+                }
               }
             ]
           }
@@ -188,6 +229,7 @@ Your capabilities:
 • Answer questions about the current deal based on the context provided above.
 • If the data to answer the question is not in the deal context, use the query_table tool to run an SQLite query against the backend database.
 • Help the user understand deal structures, lender information, KYC status, settlements, rollovers, breaches, waivers, and IU transactions.
+• If the user asks for real-time data, stock prices, or information outside the database context, use the web_search tool.
 
 Instructions:
 • Keep responses brief and action-oriented.

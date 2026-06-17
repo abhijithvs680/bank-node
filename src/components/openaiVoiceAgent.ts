@@ -229,6 +229,15 @@ export async function startVoiceAgent({
               }
             });
             document.dispatchEvent(event);
+          } else if (msg.name == "web_search") {
+            const event = new CustomEvent('ai-web-search-requested', {
+              detail: {
+                query: aiData.query,
+                deal_id: aiData.deal_id,
+                callId: msg.call_id
+              }
+            });
+            document.dispatchEvent(event);
           }
 
         } catch (error) {
@@ -704,6 +713,7 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
       let eventName = '';
 
       if (fn.name === "query_table") eventName = 'ai-query-table-requested';
+      if (fn.name === "web_search") eventName = 'ai-web-search-requested';
 
       if (eventName) {
         // Construct the expected payload exactly as the OpenAI implementation did
@@ -716,8 +726,8 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
         const e = new CustomEvent(eventName, { detail: payload });
         document.dispatchEvent(e);
 
-        // Immediately respond to Gemini so it doesnt hang (except for query_table which needs async data)
-        if (fn.name !== "query_table" && geminiSocket && geminiSocket.readyState === WebSocket.OPEN) {
+        // Immediately respond to Gemini so it doesnt hang (except for async queries)
+        if (fn.name !== "query_table" && fn.name !== "web_search" && geminiSocket && geminiSocket.readyState === WebSocket.OPEN) {
           geminiSocket.send(JSON.stringify({
             toolResponse: {
               functionResponses: [

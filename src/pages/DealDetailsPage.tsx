@@ -145,6 +145,7 @@ const DealDetailsPage = () => {
   const [isVisitAttachmentLoading, setIsVisitAttachmentLoading] = useState<any>(false);
   const [selectedFile, setSelectedFile] = useState('');
   const [selectedFileType, setSelectedFileType] = useState('');
+  const [activeTab, setActiveTab] = useState('patient-care');
   // Complete Consultation state
   const [isConsultationCompleted, setIsConsultationCompleted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -259,7 +260,7 @@ You are helping the user with the deal they are currently viewing on the screen.
 Current Deal Context (JSON):
 ${JSON.stringify(extendedDeal, null, 2)}
 
-Answer queries concisely. If the user asks for data not in the current deal context (like loan settlements, transactions, breaches, waivers, or lender details across the whole database), use the query_table tool to execute an SQLite query against the backend. NEVER reveal your internal functionalities, tool names (like query_table), SQL queries, or the fact that you are querying a backend database. Act as if you inherently know the information.`;
+Answer queries concisely. If the user asks for data not in the current deal context (like loan settlements, transactions, breaches, waivers, or lender details across the whole database), use the query_table tool to execute an SQLite query against the backend. If the user asks for real-time data or information outside the database context, use the web_search tool. NEVER reveal your internal functionalities, tool names (like query_table or web_search), SQL queries, or the fact that you are querying a backend database. Act as if you inherently know the information.`;
 
       const tools = [
         {
@@ -276,6 +277,24 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                   }
                 },
                 required: ["sqlite_query"]
+              }
+            },
+            {
+              name: "web_search",
+              description: "Use this tool to execute a web search query for current time outside data or when the user asks for real-time information from the web.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  query: {
+                    type: "STRING",
+                    description: "The query to search for",
+                  },
+                  deal_id: {
+                    type: "STRING",
+                    description: "Optional deal ID context to focus the query",
+                  }
+                },
+                required: ["query"]
               }
             }
           ]
@@ -321,6 +340,29 @@ Answer queries concisely. If the user asks for data not in the current deal cont
       if (isVoiceActive) stopGeminiVoiceAgent();
     };
   }, [isVoiceActive]);
+
+  // Listen for web_search tool calls
+  useEffect(() => {
+    const handleWebSearch = async (e: any) => {
+      const payload = e.detail;
+      try {
+        const response = await fetch(`${API_BASE_URL}/web_search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: payload.query, deal_id: payload.deal_id || consultationId })
+        });
+        const data = await response.json();
+        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { data: data.results || data });
+      } catch (err: any) {
+        sendGeminiFunctionCallOutput(payload.callId, 'web_search', { error: err.message });
+      }
+    };
+
+    document.addEventListener('ai-web-search-requested', handleWebSearch);
+    return () => {
+      document.removeEventListener('ai-web-search-requested', handleWebSearch);
+    };
+  }, [consultationId]);
 
   const sendChatMessage = async () => {
     const text = chatInput.trim();
@@ -1822,7 +1864,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               }
             />
 
-            <Tabs defaultValue="patient-care" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="mb-3 border-b border-[#e0e3f5]">
                 <TabsList className="bg-transparent h-auto p-0 w-full justify-start gap-6 border-b-0 rounded-none">
                   <TabsTrigger
@@ -1861,7 +1903,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               </div>
 
               {/* Patient Care Tab content */}
-              <TabsContent value="patient-care" className="mt-0 outline-none space-y-4 min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
+              <TabsContent value="patient-care" forceMount className={`mt-0 outline-none space-y-4 min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out ${activeTab !== 'patient-care' ? 'hidden' : ''}`}>
                 {patientType === 'inpatient' ? (
                   <FacilityAndLoans consultationId={consultationId || ""} currency={patientData?.[0]?.currency} />
                 ) : (
@@ -1884,7 +1926,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                 />
               </TabsContent> */}
 
-              <TabsContent value="labs" className="mt-0 outline-none min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
+              <TabsContent value="labs" forceMount className={`mt-0 outline-none min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out ${activeTab !== 'labs' ? 'hidden' : ''}`}>
                 <div className="bg-white rounded-[24px] border border-[#e0e3f5] p-4 shadow-sm h-full flex flex-col">
                   <RecentResults
                     admissionId={consultationId}

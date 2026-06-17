@@ -602,11 +602,21 @@ export const RecentResults = ({
         <Button
           onClick={() => fileInputRef.current?.click()}
           variant="outline"
-          className="flex items-center gap-2 rounded-[10px] px-3 py-1.5 text-[0.875rem] font-semibold shadow-sm transition-all hover:shadow-md active:scale-95"
+          className="flex items-center gap-2 rounded-[10px] px-3 py-1.5 text-[0.875rem] font-semibold shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           size="sm"
+          disabled={uploadedFiles.some(f => f.isUploading)}
         >
-          <Upload className="w-4 h-4" />
-          Upload Document
+          {uploadedFiles.some(f => f.isUploading) ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Upload className="w-4 h-4" />
+              Upload Document
+            </>
+          )}
         </Button>
       </div>
 
