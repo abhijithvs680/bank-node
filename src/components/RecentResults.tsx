@@ -48,6 +48,7 @@ interface UploadedFile {
   error?: string;
   fileId?: string;
   checklistResults?: ChecklistItemResult[];
+  uploadedAt?: string;
 }
 
 const CHECKLIST_ITEMS = [
@@ -375,6 +376,20 @@ export const RecentResults = ({
   const [viewingTargetPage, setViewingTargetPage] = useState<number | undefined>(undefined);
   const [viewingTargetBoxes, setViewingTargetBoxes] = useState<BoundingBox[]>([]);
 
+  // Sort uploaded files so that the last uploaded document is first in order
+  const sortedFilesForDisplay = useMemo(() => {
+    const parseUploadedAt = (uploadedAtStr?: string) => {
+      if (!uploadedAtStr) return 0;
+      let normalized = uploadedAtStr;
+      if (uploadedAtStr.includes(' ') && !uploadedAtStr.includes('T')) {
+        normalized = uploadedAtStr.replace(' ', 'T');
+      }
+      const t = Date.parse(normalized);
+      return isNaN(t) ? 0 : t;
+    };
+    return [...uploadedFiles].sort((a, b) => parseUploadedAt(b.uploadedAt) - parseUploadedAt(a.uploadedAt));
+  }, [uploadedFiles]);
+
   // Fetch existing deal files on mount
   useEffect(() => {
     if (!admissionId) return;
@@ -394,6 +409,7 @@ export const RecentResults = ({
             fileId: file.file_id,
             checklistResults: file.checklist_data || [],
             isUploading: false,
+            uploadedAt: file.uploaded_at,
           }));
           
           setUploadedFiles(prev => {
@@ -443,7 +459,8 @@ export const RecentResults = ({
     const newFile: UploadedFile = {
       id: tempId,
       name: file.name,
-      isUploading: true
+      isUploading: true,
+      uploadedAt: new Date().toISOString(),
     };
     
     setUploadedFiles(prev => [newFile, ...prev]);
@@ -470,7 +487,8 @@ export const RecentResults = ({
               ...f, 
               isUploading: false, 
               fileId: data.file_id,
-              checklistResults: data.checklist_analysis?.items || [] 
+              checklistResults: data.checklist_analysis?.items || [],
+              uploadedAt: data.uploaded_at || f.uploadedAt
             }
           : f
       ));
@@ -520,7 +538,7 @@ export const RecentResults = ({
     }
 
     const hasExistingResults = labResults && labResults.length > 0 && labResults[0].Vector_UUID !== '';
-    const hasLocalFiles = uploadedFiles.length > 0;
+    const hasLocalFiles = sortedFilesForDisplay.length > 0;
 
     if (!hasExistingResults && !hasLocalFiles) {
       return (
@@ -533,7 +551,7 @@ export const RecentResults = ({
     return (
       <>
         {/* Locally uploaded files with accordion checklist */}
-        {uploadedFiles.map(file => (
+        {sortedFilesForDisplay.map(file => (
           <UploadedFileRow
             key={file.id}
             file={file}

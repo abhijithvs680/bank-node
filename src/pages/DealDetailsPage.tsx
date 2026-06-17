@@ -29,7 +29,45 @@ import { AIObservations } from "@/components/AIObservations";
 import { RelativeTime } from "@/components/RelativeTime";
 import { SafeHTMLRenderer } from '@/components/SafeHTMLRenderer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Mic, MicOff, Settings, Send, Bot, User, Play, X, Loader2 } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowUpRight,
+  Bot,
+  BrainCircuit,
+  Calendar,
+  Check,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Copy,
+  Download,
+  Eye,
+  FileDown,
+  FileText,
+  Heart,
+  History,
+  LayoutGrid,
+  Loader2,
+  Lock,
+  MessageSquareText,
+  Mic,
+  MicOff,
+  Pill,
+  Play,
+  Plus,
+  Printer,
+  Send,
+  Settings,
+  Smartphone,
+  TestTube,
+  Upload,
+  User,
+  User2,
+  X as XIcon
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
@@ -41,9 +79,7 @@ import { AdditionalInfoCards } from "@/components/AdditionalInfoCards";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { DoctorAssistantWidget } from "@/components/DoctorAssistantWidget";
 import { useGeminiDoctorAssistant } from "@/hooks/useGeminiDoctorAssistant";
-import { Lock, Printer, Smartphone, CheckCircle, BrainCircuit, MessageSquareText, X as XIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, History, FileText, Heart, TestTube, Calendar, Upload, Pill, FileDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { generateMedicalReport, generateMedicalReportBlob } from '@/utils/pdfReportGenerator';
 import { parseISO, parse, isValid, format } from 'date-fns';
@@ -62,7 +98,6 @@ import type { PatientMedicine } from '@/services/patientMedicineDatabase';
 import type { LabService } from '@/services/servicesDatabase';
 import { MedicineSelectionOverlay } from '@/components/MedicineSelectionOverlay';
 import { ServiceSelectionOverlay } from '@/components/ServiceSelectionOverlay';
-import { AlertTriangle, User2 } from 'lucide-react';
 import ConsultationReport from '@/components/ui/reports/ConsultationReport';
 import { AIEventService } from '@/services/aiEventService';
 import { pauseAI, resumeAI, speakMessage, unmuteAudioOutput, muteAudioOutput, startGeminiVoiceAgent, stopGeminiVoiceAgent, sendGeminiFunctionCallOutput } from '@/components/openaiVoiceAgent';
@@ -134,6 +169,7 @@ const DealDetailsPage = () => {
   const queryBtnRef = useRef<HTMLDivElement>(null);
   const [chatPanelPos, setChatPanelPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const [querySessionId, setQuerySessionId] = useState<string | null>(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
 
   const [activeDocumentChat, setActiveDocumentChat] = useState<{ fileId: string; fileName: string; sessionId: string } | null>(null);
 
@@ -2225,8 +2261,35 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                   }`}
                 >
                   {msg.role === 'assistant' ? (
-                    <div className="px-4 py-3">
+                    <div className="px-4 py-3 relative group">
                       <ChatMarkdownRenderer content={msg.text} />
+                      {i > 0 && (
+                        <div className="flex justify-end mt-2">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(msg.text);
+                              setCopiedMessageIndex(i);
+                              setTimeout(() => {
+                                setCopiedMessageIndex(current => current === i ? null : current);
+                              }, 2000);
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1.5 text-[0.7rem] font-medium text-slate-400 hover:text-[#1a2256] hover:bg-[#1a2256]/5 rounded-md transition-colors"
+                            title="Copy message"
+                          >
+                            {copiedMessageIndex === i ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-green-600" />
+                                <span className="text-green-600 font-semibold">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     msg.text
@@ -2256,7 +2319,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
-              placeholder="Ask about a deal, clause, covenant…"
+              placeholder={activeDocumentChat ? `Ask about ${activeDocumentChat.fileName}…` : "Ask about a deal, clause, covenant…"}
               className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#1a2256] focus:ring-2 focus:ring-[#1a2256]/15 transition-all placeholder:text-[#a0b8cc]"
             />
             <button
