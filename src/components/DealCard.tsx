@@ -1,9 +1,10 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Briefcase, User, MapPin, DollarSign, ChevronRight } from 'lucide-react';
+import { Briefcase, User, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Patient } from '@/types/patient';
 import { Touchable } from '@/components/ui/touchable';
+import { MiniGauge, getHealthLabel } from '@/components/MiniGauge';
 
 interface PatientCardProps {
   patient: Patient;
@@ -33,7 +34,7 @@ export const DealCard = ({ patient, patientType = 'inpatient' }: PatientCardProp
   const arranger = patient.arranger || "Anagha KM";
   const currency = patient.currency || "ZAR";
   const dealStatus = patient.dealStatus || "Pre Financial Close";
-  const { score, label, color } = getRiskScore(patient.consultationId);
+  const { score, label } = getHealthLabel(patient.consultationId);
 
   const getAvatarGradient = (name: string) => {
     const char = name.trim().charAt(0).toUpperCase() || 'D';
@@ -102,13 +103,15 @@ export const DealCard = ({ patient, patientType = 'inpatient' }: PatientCardProp
             <p className="text-[14px] text-slate-800 font-medium truncate">{arranger}</p>
           </div>
 
-          {/* Risk Score & Currency */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 border border-slate-100 rounded-[10px] text-center flex flex-col items-center justify-center">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Risk Score</span>
-              <span className={`text-[13px] font-bold ${color}`}>{score} ({label})</span>
+          {/* Health Gauge + Currency */}
+          <div className="flex items-center justify-between gap-2 mt-1">
+            {/* Mini Gauge */}
+            <div className="flex-1 flex flex-col items-center">
+              <MiniGauge score={score} label={label} size={108} />
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider -mt-1">Health Score</span>
             </div>
-            <div className="p-2 border border-slate-100 rounded-[10px] text-center flex flex-col items-center justify-center">
+            {/* Currency chip */}
+            <div className="flex flex-col items-center justify-center p-2 border border-slate-100 rounded-[10px] min-w-[54px]">
               <span className="text-[10px] font-bold text-slate-400 uppercase block">Currency</span>
               <span className="text-[13px] font-bold text-slate-700">{currency}</span>
             </div>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Patient } from "@/types/patient";
 import { Touchable } from "@/components/ui/touchable";
+import { MiniGauge, getHealthLabel } from "@/components/MiniGauge";
 
 interface DealListRowProps {
   patient: Patient;
@@ -33,18 +34,37 @@ export const DealListRow = ({ patient }: DealListRowProps) => {
   const arranger = patient.arranger || "Anagha KM";
   const currency = patient.currency || "ZAR";
   const dealStatus = patient.dealStatus || "Pre Financial Close";
-  const { score, label, color } = getRiskScore(patient.consultationId);
+  const { score, label } = getHealthLabel(patient.consultationId);
+
+  const getAvatarGradient = (name: string) => {
+    const char = name.trim().charAt(0).toUpperCase() || 'D';
+    if (char >= 'A' && char <= 'F') {
+      return 'from-blue-600 to-indigo-500';
+    } else if (char >= 'G' && char <= 'L') {
+      return 'from-emerald-600 to-teal-500';
+    } else if (char >= 'M' && char <= 'R') {
+      return 'from-violet-600 to-fuchsia-500';
+    } else {
+      return 'from-purple-600 to-pink-500';
+    }
+  };
 
   return (
     <Touchable onClick={handleRowClick} className="w-full block">
       <div className="bg-white border border-[#e2e8f0] rounded-xl px-6 py-3 hover:shadow-md transition-all duration-200 mb-0 text-left">
-        <div className="grid grid-cols-2 md:grid-cols-[2.5fr,1.8fr,1.2fr,1.2fr,1fr,1.3fr] gap-4 items-center">
-          {/* Column 1: Deal Info (ID on top, Name below) */}
-          <div className="min-w-0">
-            <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Deal ID</div>
-            <div className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">{dealId}</div>
-            <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Deal Name</div>
-            <div className="text-[14px] font-bold text-slate-800 truncate">{dealName}</div>
+        <div className="grid grid-cols-2 md:grid-cols-[2.5fr,1.8fr,1.2fr,1fr,1.2fr,1.3fr] gap-4 items-center">
+          {/* Column 1: Deal Info (Avatar on left, Details on right) */}
+          <div className="min-w-0 flex items-center gap-3">
+            {/* Avatar Circle */}
+            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarGradient(dealName)} text-white flex items-center justify-center text-[16px] font-extrabold shadow-sm shrink-0 uppercase`}>
+              {dealName.trim().charAt(0) || 'D'}
+            </div>
+            <div className="min-w-0">
+              <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Deal ID</div>
+              <div className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">{dealId}</div>
+              <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Deal Name</div>
+              <div className="text-[14px] font-bold text-slate-800 truncate">{dealName}</div>
+            </div>
           </div>
 
           {/* Column 2: Borrower */}
@@ -59,21 +79,16 @@ export const DealListRow = ({ patient }: DealListRowProps) => {
             <div className="text-[14px] font-medium text-slate-700 truncate">{arranger}</div>
           </div>
 
-          {/* Column 4: Risk Score */}
-          <div className="min-w-0">
-            <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Risk Score</div>
-            <div className="flex items-center gap-2">
-              <span className="text-[14px] font-bold text-slate-800">{score}</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${color}`}>
-                {label}
-              </span>
-            </div>
-          </div>
-
-          {/* Column 5: Currency */}
+          {/* Column 4: Currency */}
           <div className="min-w-0">
             <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Currency</div>
             <div className="text-[14px] font-medium text-slate-700 truncate">{currency}</div>
+          </div>
+
+          {/* Column 5: Health Score (Mini Gauge) */}
+          <div className="min-w-0 flex items-center gap-2">
+            <div className="md:hidden text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Health Score</div>
+            <MiniGauge score={score} label={label} size={84} />
           </div>
 
           {/* Column 6: Status */}

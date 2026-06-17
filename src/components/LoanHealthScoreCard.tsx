@@ -62,7 +62,7 @@ export const LoanHealthScoreCard = ({ consultationId }: { consultationId: string
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-bold text-[#1a2256] uppercase tracking-wider">
-              Loan Health Score
+              Deal Health Score
             </span>
             <Info className="w-3.5 h-3.5 text-slate-400 cursor-pointer" />
           </div>

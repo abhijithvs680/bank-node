@@ -15,6 +15,7 @@ import { VitalSignsTrend } from "@/components/VitalSignsTrend";
 import { useToast } from "@/hooks/use-toast";
 import { LoanHealthScoreCard } from "@/components/LoanHealthScoreCard";
 import { EarlyWarningSignalsCard } from "@/components/EarlyWarningSignalsCard";
+import { AnomaliesCard } from "@/components/AnomaliesCard";
 import { RecentResults } from "@/components/RecentResults";
 import { DisbursementChangesCard } from "@/components/DisbursementChangesCard";
 import { NotesAndObservations } from "@/components/NotesAndObservations";
@@ -182,7 +183,7 @@ const DealDetailsPage = () => {
       { role: 'assistant', text: `Hi! How can I assist you with ${fileName}?` },
     ]);
     setIsQueryChatOpen(true);
-    
+
     fetch(`${API_BASE_URL}/session/${newSessionId}`, {
       method: 'POST',
     }).catch(err => console.error("Failed to create session:", err));
@@ -206,15 +207,15 @@ const DealDetailsPage = () => {
 
     const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     setQuerySessionId(newSessionId);
-    
+
     setChatMessages([
       { role: 'assistant', text: 'Hi! how can I assist you with the deal?' },
     ]);
-    
+
     fetch(`${API_BASE_URL}/session/${newSessionId}`, {
       method: 'POST',
     }).catch(err => console.error("Failed to create session:", err));
-    
+
   }, [isQueryChatOpen, activeDocumentChat, querySessionId]);
 
   // Measure button position when panel opens so we can use fixed positioning
@@ -254,7 +255,7 @@ const DealDetailsPage = () => {
 
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
       const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
-      
+
       const systemInstructions = `You are a helpful AI Voice Assistant for a Bank Loan Lending Platform. Speak in English by default. Only switch to another language if the user explicitly asks you to do so.
 You are helping the user with the deal they are currently viewing on the screen.
 Current Deal Context (JSON):
@@ -326,7 +327,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
           body: JSON.stringify({ query: payload.sqlite_query })
         });
         const data = await response.json();
-        
+
         // Pass response back to Gemini Voice Agent
         sendGeminiFunctionCallOutput(payload.callId, 'query_table', { data: data.results || data });
       } catch (err) {
@@ -409,7 +410,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
       }
 
       const data = await response.json();
-      
+
       setChatMessages(prev => [
         ...prev,
         {
@@ -1889,7 +1890,7 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                                data-[state=active]:border-[#1a2256] data-[state=active]:text-[#1a2256] data-[state=active]:shadow-none data-[state=active]:bg-transparent 
                                hover:text-foreground"
                   >
-                    File Storage
+                    Finance / Legal Agreement
                   </TabsTrigger>
                   {/* <TabsTrigger
                     value="history"
@@ -2064,6 +2065,9 @@ Answer queries concisely. If the user asks for data not in the current deal cont
 
             {/* Early Warning Signals Card */}
             <EarlyWarningSignalsCard consultationId={consultationId || ''} />
+
+            {/* Anomalies & Fraud Attempts Card */}
+            <AnomaliesCard consultationId={consultationId || ''} />
 
             {/* What's Changed Since Last Disbursement Card */}
             <DisbursementChangesCard consultationId={consultationId || ''} />
@@ -2297,11 +2301,10 @@ Answer queries concisely. If the user asks for data not in the current deal cont
                   </div>
                 )}
                 <div
-                  className={`max-w-[88%] rounded-[16px] overflow-hidden ${
-                    msg.role === 'user'
-                      ? 'bg-[#1a2256] text-white rounded-br-[4px] shadow-sm px-4 py-2.5 text-[0.85rem] leading-relaxed'
-                      : 'bg-white border border-[#dde9f8] shadow-sm rounded-bl-[4px]'
-                  }`}
+                  className={`max-w-[88%] rounded-[16px] overflow-hidden ${msg.role === 'user'
+                    ? 'bg-[#1a2256] text-white rounded-br-[4px] shadow-sm px-4 py-2.5 text-[0.85rem] leading-relaxed'
+                    : 'bg-white border border-[#dde9f8] shadow-sm rounded-bl-[4px]'
+                    }`}
                 >
                   {msg.role === 'assistant' ? (
                     <div className="px-4 py-3 relative group">

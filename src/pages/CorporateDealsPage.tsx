@@ -3,11 +3,11 @@ import { DealCard } from "@/components/DealCard";
 import { DealListRow } from "@/components/DealListRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, Flag } from "lucide-react";
+import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, Flag, Crosshair } from "lucide-react";
 import UserProfile from "@/components/UserProfile";
 import { apiService } from "@/services/apiService";
 import { Patient } from "@/types/patient";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 import { usePatientListSocket } from "@/hooks/useSocket";
@@ -39,12 +39,12 @@ const PatientSection = ({ title, patients, viewMode, bgColor, borderColor, badge
       ) : (
         <div className="space-y-1.5 animate-in fade-in duration-300">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[2.5fr,1.8fr,1.2fr,1.2fr,1fr,1.3fr] gap-4 px-6 py-3 bg-[#1a2256]/[0.02] border-b border-[#1a2256]/10 mb-1.5">
+          <div className="hidden md:grid grid-cols-[2.5fr,1.8fr,1.2fr,1fr,1.2fr,1.3fr] gap-4 px-6 py-3 bg-[#1a2256]/[0.02] border-b border-[#1a2256]/10 mb-1.5">
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Deal Info</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Borrower</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Arranger</span>
-            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Risk Score</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Currency</span>
+            <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left">Health Score</span>
             <span className="text-[12px] font-semibold text-[#1a2256]/60 uppercase tracking-wider text-left md:text-right">Status</span>
           </div>
           {patients.map((patient) => (
@@ -57,6 +57,7 @@ const PatientSection = ({ title, patients, viewMode, bgColor, borderColor, badge
 };
 
 const CorporateDealsPage = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const patientType = getPatientTypeFromPath(location.pathname);
   const { user } = useAuth();
@@ -157,7 +158,15 @@ const CorporateDealsPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            {/* Market Scan Button */}
+            <button
+              onClick={() => navigate("/market-scan")}
+              className="flex items-center gap-2 animated-scan-btn text-white rounded-[10px] h-10 px-4 shadow-[0_4px_15px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_22px_rgba(99,102,241,0.55)] transition-all duration-200 active:scale-95"
+            >
+              <Crosshair className="w-4 h-4" />
+              <span className="text-[13px] font-bold tracking-wide whitespace-nowrap">Corporate X-Ray</span>
+            </button>
             <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
             <UserProfile variant="header" />
           </div>
