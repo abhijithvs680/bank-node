@@ -94,7 +94,7 @@ const LoginPage = () => {
          <div className='flex justify-center mb-2'>
             <img
               src={logoUrl}
-              style={{ width: "140px" }}
+              style={{ width: "140px", backgroundColor: 'black' }}
               alt={`${appName} Logo`}
             />
           </div>
