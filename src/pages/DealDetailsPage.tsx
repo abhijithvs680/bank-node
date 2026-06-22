@@ -55,7 +55,9 @@ import {
   LayoutGrid,
   Loader2,
   Lock,
+  MessageSquare,
   MessageSquareText,
+  Menu,
   Mic,
   MicOff,
   Pill,
@@ -140,7 +142,7 @@ import {
 import { getPatientListPath, getPatientTypeFromPath } from '@/utils/patientRoutes';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
-interface AILogEntry extends DealAILogEntry {}
+interface AILogEntry extends DealAILogEntry { }
 
 const AI_LOGS_PAGE_SIZE = 5;
 
@@ -368,6 +370,72 @@ const DealDetailsPage = () => {
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
 
   const [activeDocumentChat, setActiveDocumentChat] = useState<{ fileId: string; fileName: string; sessionId: string } | null>(null);
+
+  interface ChatSession {
+    id: string;
+    title: string;
+    messages: ChatMsg[];
+    activeDocumentChat?: { fileId: string; fileName: string; sessionId: string } | null;
+  }
+
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
+    {
+      id: 'default',
+      title: 'New Chat',
+      messages: [{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }],
+      activeDocumentChat: null
+    }
+  ]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('default');
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+
+  const handleSelectSession = (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (session) {
+      setActiveSessionId(sessionId);
+      setChatMessages(session.messages);
+      setQuerySessionId(session.id === 'default' ? null : session.id);
+      setActiveDocumentChat(session.activeDocumentChat || null);
+    }
+  };
+
+  const handleNewChat = () => {
+    const newId = `session-${Date.now()}`;
+    const newSession: ChatSession = {
+      id: newId,
+      title: 'New Chat',
+      messages: [{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }],
+      activeDocumentChat: null
+    };
+    setChatSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newId);
+    setChatMessages(newSession.messages);
+    setQuerySessionId(newId);
+    setActiveDocumentChat(null);
+    setChatInput('');
+  };
+
+  // Sync effect to update active session with new messages and dynamic title
+  useEffect(() => {
+    setChatSessions(prev => {
+      return prev.map(s => {
+        if (s.id === activeSessionId) {
+          const firstUserMsg = chatMessages.find(m => m.role === 'user');
+          const title = firstUserMsg
+            ? (firstUserMsg.text.length > 25 ? firstUserMsg.text.substring(0, 25) + '...' : firstUserMsg.text)
+            : s.title;
+          return {
+            ...s,
+            title,
+            messages: chatMessages,
+            activeDocumentChat
+          };
+        }
+        return s;
+      });
+    });
+  }, [chatMessages, activeSessionId, activeDocumentChat]);
 
   const handleAskAI = (fileId: string, fileName: string) => {
     const newSessionId = `doc-session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -688,16 +756,25 @@ const DealDetailsPage = () => {
     return () => document.removeEventListener('ai-manage-deal-modals', handleManageModals);
   }, [aiNoteModal.open, aiNoteModal.note, aiNotifyModal.open, aiNotifyModal.data]);
 
-  const sendChatMessage = async () => {
-    const text = chatInput.trim();
+  const triggerSendPrompt = async (text: string) => {
     if (!text || chatLoading) return;
-    setChatInput('');
     setChatMessages(prev => [...prev, { role: 'user', text }]);
     setChatLoading(true);
 
     try {
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
       const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+
+      // Ensure a valid session exists in backend
+      const targetSessionId = querySessionId || `session-${Date.now()}`;
+      if (!querySessionId) {
+        setQuerySessionId(targetSessionId);
+        try {
+          await fetch(`${API_BASE_URL}/session/${targetSessionId}`, { method: 'POST' });
+        } catch (e) {
+          console.error("Failed to pre-create session:", e);
+        }
+      }
 
       let response;
       if (activeDocumentChat) {
@@ -721,7 +798,7 @@ const DealDetailsPage = () => {
           },
           body: JSON.stringify({
             deal_id: consultationId || '',
-            session_id: querySessionId,
+            session_id: targetSessionId,
             user_query: text,
             deal_data: extendedDeal
           }),
@@ -753,6 +830,13 @@ const DealDetailsPage = () => {
     } finally {
       setChatLoading(false);
     }
+  };
+
+  const sendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || chatLoading) return;
+    setChatInput('');
+    await triggerSendPrompt(text);
   };
   // Effect to automatically pause/resume AI voice agent based on active forms or overlays
   // Note: showAddVitals is excluded - voice should remain active for vitals form
@@ -2150,6 +2234,53 @@ const DealDetailsPage = () => {
     }
   };
 
+  const handleGenerateDocument = async () => {
+    const rawDealId = patientData[0]?.dealId || "AG261070";
+    const cleanDealId = rawDealId.replace(/^#/, "");
+
+    try {
+      toast({
+        title: "Generating Document",
+        description: `Initializing document for Deal ID: ${cleanDealId}...`,
+      });
+
+      const response = await fetch("https://fin-studio-api.vizru-ras.com/api/documents/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "deal-id": cleanDealId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Document generation response:", data);
+
+      const generationId = data["generation-id"] || data["generation_id"];
+      if (generationId) {
+        // toast({
+        //   title: "Redirecting",
+        //   description: "Document initialized. Redirecting to Editor...",
+        // });
+        window.location.href = `https://fin-studio.vizru-ras.com/doc/${generationId}`;
+      } else {
+        throw new Error("No generation-id returned from server");
+      }
+    } catch (error) {
+      console.error("Failed to generate document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize document generation.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return <div className="p-6">Loading Patient Details...</div>;
   }
@@ -2206,6 +2337,14 @@ const DealDetailsPage = () => {
           </div>
           <div className="flex items-center gap-4">
             {/* Query Deals button */}
+            <button
+              id="query-deals-btn"
+              onClick={handleGenerateDocument}
+              className="flex items-center gap-2 animated-docs-btn text-white rounded-[10px] h-10 px-4 shadow-[0_4px_15px_rgba(16,185,129,0.4)] hover:shadow-[0_6px_22px_rgba(16,185,129,0.55)] transition-all duration-200 active:scale-95"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Generate Document</span>
+            </button>
             <button
               id="query-deals-btn"
               onClick={() => setIsQueryChatOpen(true)}
@@ -2707,108 +2846,284 @@ const DealDetailsPage = () => {
 
       {/* Query Deals Dialog */}
       <Dialog open={isQueryChatOpen} onOpenChange={setIsQueryChatOpen}>
-        <DialogContent className="max-w-[520px] w-full p-0 gap-0 overflow-hidden rounded-[18px] border-[#1a2256]/20 bg-[#f8fbff] shadow-2xl [&>button]:hidden z-[9999] !left-auto !right-6 !top-auto !bottom-6 !translate-x-0 !translate-y-0">
-          {/* Header */}
-          <div className="flex items-center gap-2.5 px-5 py-3.5 bg-[#1a2256] shrink-0 relative">
-            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-              <MessageSquareText className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[0.94rem] font-bold text-white">Ask AI</p>
-            </div>
-            <button
-              onClick={() => setIsQueryChatOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-            >
-              <XIcon className="w-5 h-5 text-white" />
-            </button>
-          </div>
+        <DialogContent className="max-w-[1050px] w-[95vw] h-[620px] p-0 gap-0 overflow-hidden rounded-[24px] border-[#e2e8f0] bg-white shadow-2xl [&>button]:hidden z-[9999] flex flex-row font-['Inter']">
 
-          {/* Messages */}
-          <div className="h-[460px] overflow-y-auto px-5 py-4 space-y-3 bg-[#f8fbff] medical-scroll">
-            {chatMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-full bg-[#1a2256] flex items-center justify-center mr-2 flex-shrink-0 mt-0.5 shadow-sm">
-                    <MessageSquareText className="w-3.5 h-3.5 text-white" />
+          {/* Left Sidebar */}
+          <div className={`bg-[#f4f6fc] border-r border-slate-200/80 flex flex-col transition-all duration-300 ${isSidebarExpanded ? 'w-[260px]' : 'w-[72px]'}`}>
+
+            {/* Sidebar Content: Collapsed */}
+            {!isSidebarExpanded ? (
+              <div className="flex flex-col h-full items-center">
+                {/* Menu / Hamburger Icon */}
+                <div className="h-[60px] flex items-center justify-center border-b border-slate-200/60 w-full shrink-0">
+                  <Menu
+                    className="w-6 h-6 cursor-pointer text-slate-500 hover:text-[#1a2256] transition-colors"
+                    onClick={() => setIsSidebarExpanded(true)}
+                  />
+                </div>
+
+                {/* Actions & List */}
+                <div className="px-2 py-4 flex flex-col items-center gap-4 flex-1 w-full overflow-hidden">
+                  <button
+                    onClick={handleNewChat}
+                    className="w-11 h-11 bg-[#1a2256] hover:bg-[#1a2256]/90 text-white flex items-center justify-center rounded-xl shadow-md transition-all duration-200 active:scale-95 shrink-0"
+                    title="New Chat"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-11 h-11 bg-white border border-slate-200 shadow-sm text-slate-400 hover:text-slate-600 flex items-center justify-center rounded-xl transition-colors shrink-0 animate-in fade-in"
+                    onClick={() => setIsSidebarExpanded(true)}
+                    title="Search conversations"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+
+                  {/* Scrollable Chat History List (includes both active and inactive sessions) */}
+                  <div className="flex-1 w-full overflow-y-auto overflow-x-hidden space-y-5 mt-4 px-2 medical-scroll flex flex-col items-center pb-4">
+                    {chatSessions.map(session => {
+                      const isActive = session.id === activeSessionId;
+                      return isActive ? (
+                        <button
+                          key={session.id}
+                          className="w-10 h-10 bg-[#1a2256] text-white flex items-center justify-center rounded-xl shadow-md transition-all shrink-0 animate-in zoom-in-95 duration-150"
+                          title={session.title}
+                        >
+                          <MessageSquare className="w-4 h-4 text-white" />
+                        </button>
+                      ) : (
+                        <button
+                          key={session.id}
+                          onClick={() => handleSelectSession(session.id)}
+                          className="w-11 h-11 text-indigo-500 hover:text-indigo-700 hover:bg-slate-200/50 flex items-center justify-center rounded-xl transition-all shrink-0"
+                          title={session.title}
+                        >
+                          <MessageSquare className="w-5 h-5" />
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
-                <div
-                  className={`max-w-[88%] rounded-[16px] overflow-hidden ${msg.role === 'user'
-                    ? 'bg-[#1a2256] text-white rounded-br-[4px] shadow-sm px-4 py-2.5 text-[0.85rem] leading-relaxed'
-                    : 'bg-white border border-[#dde9f8] shadow-sm rounded-bl-[4px]'
-                    }`}
-                >
-                  {msg.role === 'assistant' ? (
-                    <div className="px-4 py-3 relative group">
-                      <ChatMarkdownRenderer content={msg.text} />
-                      {i > 0 && (
-                        <div className="flex justify-end mt-2">
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(msg.text);
-                              setCopiedMessageIndex(i);
-                              setTimeout(() => {
-                                setCopiedMessageIndex(current => current === i ? null : current);
-                              }, 2000);
-                            }}
-                            className="flex items-center gap-1.5 px-2 py-1.5 text-[0.7rem] font-medium text-slate-400 hover:text-[#1a2256] hover:bg-[#1a2256]/5 rounded-md transition-colors"
-                            title="Copy message"
-                          >
-                            {copiedMessageIndex === i ? (
-                              <>
-                                <Check className="w-3.5 h-3.5 text-green-600" />
-                                <span className="text-green-600 font-semibold">Copied</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3.5 h-3.5" />
-                                <span>Copy</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    msg.text
-                  )}
                 </div>
               </div>
-            ))}
-            {chatLoading && (
-              <div className="flex justify-start items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[#1a2256] flex items-center justify-center shadow-sm">
-                  <MessageSquareText className="w-3.5 h-3.5 text-white" />
+            ) : (
+              // Sidebar Content: Expanded
+              <div className="flex flex-col h-full overflow-hidden">
+                {/* Header */}
+                <div className="h-[60px] px-4 flex items-center justify-between border-b border-slate-200/60 shrink-0">
+                  <span className="text-[11px] font-extrabold tracking-wider text-slate-400">CHAT HISTORY</span>
+                  <ChevronLeft
+                    className="w-5 h-5 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+                    onClick={() => setIsSidebarExpanded(false)}
+                  />
                 </div>
-                <div className="bg-white border border-[#dde9f8] rounded-[16px] rounded-bl-[4px] px-4 py-2.5 shadow-sm flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+
+                {/* New Chat & Search */}
+                <div className="p-3 space-y-3 shrink-0">
+                  <button
+                    onClick={handleNewChat}
+                    className="w-full h-11 bg-[#1a2256] hover:bg-[#1a2256]/90 text-white flex items-center justify-center gap-2 rounded-full font-semibold text-xs shadow-md transition-all duration-200 active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Chat</span>
+                  </button>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search conversations..."
+                      value={chatSearchQuery}
+                      onChange={e => setChatSearchQuery(e.target.value)}
+                      className="w-full h-8 pl-8 pr-3 rounded-full border border-slate-200 bg-white text-[11px] outline-none focus:border-[#1a2256] transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Conversation List */}
+                <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-1 medical-scroll">
+                  {chatSessions
+                    .filter(s => s.title.toLowerCase().includes(chatSearchQuery.toLowerCase()))
+                    .map(session => {
+                      const isActive = session.id === activeSessionId;
+                      return (
+                        <button
+                          key={session.id}
+                          onClick={() => handleSelectSession(session.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-[11px] transition-colors ${isActive
+                            ? 'bg-[#1a2256] text-white font-semibold shadow-sm'
+                            : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
+                            }`}
+                        >
+                          <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          <span className="truncate flex-1">{session.title}</span>
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             )}
-            <div ref={chatEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="px-5 py-3.5 border-t border-[#1a2256]/10 bg-white flex items-center gap-2.5 shrink-0">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
-              placeholder={activeDocumentChat ? `Ask about ${activeDocumentChat.fileName}…` : "Ask about a deal, clause, covenant…"}
-              className="flex-1 rounded-[10px] border border-[#c5ddf5] px-4 py-2.5 text-[0.85rem] outline-none focus:border-[#1a2256] focus:ring-2 focus:ring-[#1a2256]/15 transition-all placeholder:text-[#a0b8cc]"
-            />
-            <button
-              onClick={sendChatMessage}
-              disabled={!chatInput.trim() || chatLoading}
-              className="w-10 h-10 rounded-[10px] bg-[#1a2256] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
+
+            {/* Header */}
+            <div className="h-[60px] px-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#1a2256]/5 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-[#1a2256]" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700 leading-tight">Ask AI Assistant</h4>
+                  <span className="text-[9px] text-slate-500 font-medium">General Assistant</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsQueryChatOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <XIcon className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Content Switcher */}
+            {chatMessages.filter((msg, idx) => !(idx === 0 && msg.role === 'assistant')).length === 0 ? (
+              // Start Screen View
+              <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 bg-gradient-to-b from-[#f8fafc] to-white overflow-y-auto medical-scroll">
+                <h2 className="text-2xl font-bold text-[#1a2256] tracking-tight mb-6">What would you like to find?</h2>
+
+                {/* Large Centered Search Box */}
+                <div className="w-full max-w-[580px] relative mb-10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-full border border-slate-200/80 bg-white">
+                  <Search className="w-5 h-5 text-slate-400 absolute left-5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                    placeholder="Ask about a deal, clause, covenant..."
+                    className="w-full h-12 pl-12 pr-14 rounded-full text-[13px] outline-none placeholder:text-slate-400 text-slate-800 focus:border-[#1a2256] focus:ring-1 focus:ring-[#1a2256]/10 transition-all"
+                  />
+                  <button
+                    onClick={sendChatMessage}
+                    disabled={!chatInput.trim() || chatLoading}
+                    className="w-8 h-8 rounded-full bg-[#1a2256] hover:bg-[#1a2256]/90 text-white flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+                  >
+                    <Send className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </div>
+
+                {/* Suggested Prompts Grid */}
+                <div className="w-full max-w-[680px] text-center">
+                  <span className="text-[9px] font-bold tracking-widest text-slate-400 uppercase">SUGGESTED PROMPTS</span>
+                  <div className="grid grid-cols-2 gap-3 mt-3 text-left">
+                    {[
+                      "Summarize the key facility terms and covenants for this deal.",
+                      "Are there any financial covenant thresholds or testing frequencies I should be aware of?",
+                      "List all lenders associated with this facility.",
+                      "Check for any outstanding compliance or default notification requirements."
+                    ].map((promptText, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => triggerSendPrompt(promptText)}
+                        className="bg-white border border-slate-100 hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-md transition-all duration-200 rounded-[14px] p-3.5 text-[11px] text-slate-600 leading-normal font-medium text-left"
+                      >
+                        {promptText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Active Chat Messages View
+              <div className="flex-1 flex flex-col overflow-hidden justify-between">
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-slate-50/30 medical-scroll">
+                  {chatMessages
+                    .filter((msg, idx) => !(idx === 0 && msg.role === 'assistant'))
+                    .map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {msg.role === 'assistant' && (
+                          <div className="w-8 h-8 rounded-full bg-[#1a2256]/10 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5 shadow-sm">
+                            <Bot className="w-5 h-5 text-[#1a2256]" />
+                          </div>
+                        )}
+                        <div
+                          className={`max-w-[75%] rounded-[18px] shadow-sm relative ${msg.role === 'user'
+                            ? 'bg-[#1a2256] text-white rounded-tr-[4px] px-5 py-3 text-[12px] leading-relaxed'
+                            : 'bg-white border border-slate-200/80 text-slate-700 rounded-tl-[4px] px-5 py-4 pb-12 text-[12px] leading-relaxed flex-1'
+                            }`}
+                        >
+                          {msg.role === 'assistant' ? (
+                            <>
+                              <ChatMarkdownRenderer content={msg.text} />
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(msg.text);
+                                  setCopiedMessageIndex(i);
+                                  setTimeout(() => {
+                                    setCopiedMessageIndex(current => current === i ? null : current);
+                                  }, 2000);
+                                }}
+                                className="flex items-center gap-1 absolute bottom-3 right-4 text-[10px] font-bold text-slate-400 hover:text-[#1a2256] transition-colors"
+                                title="Copy message"
+                              >
+                                {copiedMessageIndex === i ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-green-600" />
+                                    <span className="text-green-600 font-bold">Copied</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copy</span>
+                                  </>
+                                )}
+                              </button>
+                            </>
+                          ) : (
+                            msg.text
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                  {chatLoading && (
+                    <div className="flex justify-start items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#1a2256]/10 flex items-center justify-center shadow-sm">
+                        <Bot className="w-5 h-5 text-[#1a2256]" />
+                      </div>
+                      <div className="bg-white border border-slate-200/80 rounded-[18px] rounded-tl-[4px] px-5 py-3 shadow-sm flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-[#1a2256]/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Bottom Input Area */}
+                <div className="px-4 py-3 bg-white border-t border-slate-100 flex items-center shrink-0">
+                  <div className="w-full relative shadow-[0_2px_12px_rgba(0,0,0,0.01)] rounded-full border border-slate-200 bg-white">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                      placeholder="Ask about a deal, clause, covenant..."
+                      className="w-full h-11 pl-5 pr-14 rounded-full text-[12px] outline-none placeholder:text-slate-400 text-slate-800 bg-transparent"
+                    />
+                    <button
+                      onClick={sendChatMessage}
+                      disabled={!chatInput.trim() || chatLoading}
+                      className="w-8 h-8 rounded-full bg-[#1a2256] hover:bg-[#1a2256]/90 text-white flex items-center justify-center absolute right-1.5 top-1/2 -translate-y-1/2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+                    >
+                      <Send className="w-3.5 h-3.5 text-white animate-pulse" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
         </DialogContent>
       </Dialog>      {/* Demo AI-Generated Notification compact floating card */}
       {isDemoSheetOpen && demoState === 'preview' && (
