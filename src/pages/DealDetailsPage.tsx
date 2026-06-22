@@ -378,25 +378,89 @@ const DealDetailsPage = () => {
     activeDocumentChat?: { fileId: string; fileName: string; sessionId: string } | null;
   }
 
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: 'default',
-      title: 'New Chat',
-      messages: [{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }],
-      activeDocumentChat: null
-    }
-  ]);
-  const [activeSessionId, setActiveSessionId] = useState<string>('default');
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [chatSearchQuery, setChatSearchQuery] = useState('');
 
-  const handleSelectSession = (sessionId: string) => {
-    const session = chatSessions.find(s => s.id === sessionId);
-    if (session) {
+  const activeSessionIdRef = useRef<string>(activeSessionId);
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
+
+  const fetchSessions = useCallback(async () => {
+    if (!consultationId) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/deals/${consultationId}/sessions`);
+      if (res.ok) {
+        const data = await res.json();
+        const sessionsArray = data.sessions || [];
+        const loadedSessions: ChatSession[] = sessionsArray.map((s: any) => ({
+          id: s.id || s.session_id,
+          title: s.title || `Session ${new Date(s.created_at).toLocaleString()}`,
+          messages: [],
+          activeDocumentChat: null
+        }));
+        
+        setChatSessions(prev => {
+          const localSessions = prev.filter(p => !loadedSessions.find(ls => ls.id === p.id));
+          return [...localSessions, ...loadedSessions];
+        });
+
+        if (!activeSessionIdRef.current) {
+           handleNewChat();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load sessions:", err);
+    }
+  }, [consultationId]); // Removed activeSessionId dependency
+
+  useEffect(() => {
+    if (isQueryChatOpen && consultationId) {
+      fetchSessions();
+    }
+  }, [isQueryChatOpen, consultationId, fetchSessions]);
+
+  const handleSelectSession = async (sessionId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/session/${sessionId}`);
+      let msgs: ChatMsg[] = [{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }];
+      if (res.ok) {
+        const data = await res.json();
+        const messagesArray = data.messages || [];
+        if (messagesArray.length > 0) {
+          const loadedMsgs = messagesArray.map((m: any) => {
+            const role = m.role === 'model' ? 'assistant' : m.role;
+            let text = '';
+            if (Array.isArray(m.content) && m.content.length > 0) {
+              text = m.content[0].text || '';
+            } else if (typeof m.content === 'string') {
+              text = m.content;
+            } else if (m.text) {
+              text = m.text;
+            }
+            return { role, text };
+          });
+          msgs = [{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }, ...loadedMsgs];
+        }
+      }
       setActiveSessionId(sessionId);
-      setChatMessages(session.messages);
-      setQuerySessionId(session.id === 'default' ? null : session.id);
-      setActiveDocumentChat(session.activeDocumentChat || null);
+      setChatMessages(msgs);
+      setQuerySessionId(sessionId);
+      
+      setChatSessions(prev => prev.map(s => {
+        if (s.id === sessionId) {
+           const firstUserMsg = msgs.find(m => m.role === 'user');
+           const title = firstUserMsg 
+              ? (firstUserMsg.text.length > 25 ? firstUserMsg.text.substring(0, 25) + '...' : firstUserMsg.text) 
+              : s.title;
+           return { ...s, messages: msgs, title };
+        }
+        return s;
+      }));
+    } catch (err) {
+      console.error("Failed to load session messages:", err);
     }
   };
 
@@ -414,6 +478,21 @@ const DealDetailsPage = () => {
     setQuerySessionId(newId);
     setActiveDocumentChat(null);
     setChatInput('');
+  };
+
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch(`${API_BASE_URL}/session/${sessionId}`, { method: 'DELETE' });
+      setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (activeSessionId === sessionId) {
+         setChatMessages([{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }]);
+         setQuerySessionId(null);
+         setActiveSessionId('');
+      }
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+    }
   };
 
   // Sync effect to update active session with new messages and dynamic title
@@ -439,46 +518,30 @@ const DealDetailsPage = () => {
 
   const handleAskAI = (fileId: string, fileName: string) => {
     const newSessionId = `doc-session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const newSession: ChatSession = {
+      id: newSessionId,
+      title: `Ask AI: ${fileName}`,
+      messages: [{ role: 'assistant', text: `Hi! How can I assist you with ${fileName}?` }],
+      activeDocumentChat: { fileId, fileName, sessionId: newSessionId }
+    };
+    setChatSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newSessionId);
     setActiveDocumentChat({ fileId, fileName, sessionId: newSessionId });
     setQuerySessionId(newSessionId);
-    setChatMessages([
-      { role: 'assistant', text: `Hi! How can I assist you with ${fileName}?` },
-    ]);
+    setChatMessages(newSession.messages);
     setIsQueryChatOpen(true);
-
-    fetch(`${API_BASE_URL}/session/${newSessionId}`, {
-      method: 'POST',
-    }).catch(err => console.error("Failed to create session:", err));
   };
 
   // Manage chat session lifecycle
   useEffect(() => {
     if (!isQueryChatOpen) {
-      if (querySessionId) {
-        fetch(`${API_BASE_URL}/session/${querySessionId}`, {
-          method: 'DELETE',
-        }).catch(err => console.error("Failed to delete session:", err));
-      }
       setQuerySessionId(null);
       setActiveDocumentChat(null);
-      return;
+      setActiveSessionId('');
+      // Clean up any unsaved sessions (sessions with only the assistant greeting)
+      setChatSessions(prev => prev.filter(s => s.messages && s.messages.length > 1));
     }
-
-    if (activeDocumentChat) return; // Handled by handleAskAI
-    if (querySessionId) return; // Add this line to prevent infinite loop
-
-    const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    setQuerySessionId(newSessionId);
-
-    setChatMessages([
-      { role: 'assistant', text: 'Hi! how can I assist you with the deal?' },
-    ]);
-
-    fetch(`${API_BASE_URL}/session/${newSessionId}`, {
-      method: 'POST',
-    }).catch(err => console.error("Failed to create session:", err));
-
-  }, [isQueryChatOpen, activeDocumentChat, querySessionId]);
+  }, [isQueryChatOpen]);
 
   // Measure button position when panel opens so we can use fixed positioning
   // (escapes the header's overflow-hidden)
@@ -769,10 +832,22 @@ const DealDetailsPage = () => {
       const targetSessionId = querySessionId || `session-${Date.now()}`;
       if (!querySessionId) {
         setQuerySessionId(targetSessionId);
+      }
+
+      // If it's the first message, create the session in the backend.
+      if (chatMessages.length <= 1) {
+        let title = text.length > 25 ? text.substring(0, 25) + '...' : text;
+        if (activeDocumentChat) {
+          title = `Ask AI: ${activeDocumentChat.fileName}`;
+        }
         try {
-          await fetch(`${API_BASE_URL}/session/${targetSessionId}`, { method: 'POST' });
+          await fetch(`${API_BASE_URL}/session/${targetSessionId}`, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deal_id: consultationId || '', title })
+          });
         } catch (e) {
-          console.error("Failed to pre-create session:", e);
+          console.error("Failed to create session:", e);
         }
       }
 
@@ -2879,30 +2954,7 @@ const DealDetailsPage = () => {
                     <Search className="w-5 h-5" />
                   </button>
 
-                  {/* Scrollable Chat History List (includes both active and inactive sessions) */}
-                  <div className="flex-1 w-full overflow-y-auto overflow-x-hidden space-y-5 mt-4 px-2 medical-scroll flex flex-col items-center pb-4">
-                    {chatSessions.map(session => {
-                      const isActive = session.id === activeSessionId;
-                      return isActive ? (
-                        <button
-                          key={session.id}
-                          className="w-10 h-10 bg-[#1a2256] text-white flex items-center justify-center rounded-xl shadow-md transition-all shrink-0 animate-in zoom-in-95 duration-150"
-                          title={session.title}
-                        >
-                          <MessageSquare className="w-4 h-4 text-white" />
-                        </button>
-                      ) : (
-                        <button
-                          key={session.id}
-                          onClick={() => handleSelectSession(session.id)}
-                          className="w-11 h-11 text-indigo-500 hover:text-indigo-700 hover:bg-slate-200/50 flex items-center justify-center rounded-xl transition-all shrink-0"
-                          title={session.title}
-                        >
-                          <MessageSquare className="w-5 h-5" />
-                        </button>
-                      );
-                    })}
-                  </div>
+
                 </div>
               </div>
             ) : (
@@ -2945,17 +2997,25 @@ const DealDetailsPage = () => {
                     .map(session => {
                       const isActive = session.id === activeSessionId;
                       return (
-                        <button
-                          key={session.id}
-                          onClick={() => handleSelectSession(session.id)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-[11px] transition-colors ${isActive
-                            ? 'bg-[#1a2256] text-white font-semibold shadow-sm'
-                            : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
-                            }`}
-                        >
-                          <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                          <span className="truncate flex-1">{session.title}</span>
-                        </button>
+                        <div key={session.id} className="relative group w-full flex items-center">
+                          <button
+                            onClick={() => handleSelectSession(session.id)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-[11px] transition-colors ${isActive
+                              ? 'bg-[#1a2256] text-white font-semibold shadow-sm pr-8'
+                              : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 pr-8'
+                              }`}
+                          >
+                            <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                            <span className="truncate flex-1">{session.title}</span>
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteSession(session.id, e)}
+                            className={`absolute right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-red-500 hover:bg-slate-200'}`}
+                            title="Delete session"
+                          >
+                            <XIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       );
                     })}
                 </div>
