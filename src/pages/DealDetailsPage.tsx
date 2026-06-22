@@ -401,14 +401,14 @@ const DealDetailsPage = () => {
           messages: [],
           activeDocumentChat: null
         }));
-        
+
         setChatSessions(prev => {
           const localSessions = prev.filter(p => !loadedSessions.find(ls => ls.id === p.id));
           return [...localSessions, ...loadedSessions];
         });
 
         if (!activeSessionIdRef.current) {
-           handleNewChat();
+          handleNewChat();
         }
       }
     } catch (err) {
@@ -448,14 +448,14 @@ const DealDetailsPage = () => {
       setActiveSessionId(sessionId);
       setChatMessages(msgs);
       setQuerySessionId(sessionId);
-      
+
       setChatSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
-           const firstUserMsg = msgs.find(m => m.role === 'user');
-           const title = firstUserMsg 
-              ? (firstUserMsg.text.length > 25 ? firstUserMsg.text.substring(0, 25) + '...' : firstUserMsg.text) 
-              : s.title;
-           return { ...s, messages: msgs, title };
+          const firstUserMsg = msgs.find(m => m.role === 'user');
+          const title = firstUserMsg
+            ? (firstUserMsg.text.length > 25 ? firstUserMsg.text.substring(0, 25) + '...' : firstUserMsg.text)
+            : s.title;
+          return { ...s, messages: msgs, title };
         }
         return s;
       }));
@@ -486,9 +486,9 @@ const DealDetailsPage = () => {
       await fetch(`${API_BASE_URL}/session/${sessionId}`, { method: 'DELETE' });
       setChatSessions(prev => prev.filter(s => s.id !== sessionId));
       if (activeSessionId === sessionId) {
-         setChatMessages([{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }]);
-         setQuerySessionId(null);
-         setActiveSessionId('');
+        setChatMessages([{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }]);
+        setQuerySessionId(null);
+        setActiveSessionId('');
       }
     } catch (err) {
       console.error("Failed to delete session:", err);
@@ -841,7 +841,7 @@ const DealDetailsPage = () => {
           title = `Ask AI: ${activeDocumentChat.fileName}`;
         }
         try {
-          await fetch(`${API_BASE_URL}/session/${targetSessionId}`, { 
+          await fetch(`${API_BASE_URL}/session/${targetSessionId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ deal_id: consultationId || '', title })
@@ -2313,6 +2313,70 @@ const DealDetailsPage = () => {
     const rawDealId = patientData[0]?.dealId || "AG261070";
     const cleanDealId = rawDealId.replace(/^#/, "");
 
+    // 1. Open a blank tab synchronously during the click event to prevent pop-up blockers
+    // Note: We do NOT use 'noopener' here because we need to keep a reference to the window to redirect it later.
+    const newTab = window.open('about:blank', '_blank');
+    if (newTab) {
+      newTab.document.write(`
+        <html>
+          <head>
+            <title>Initializing Document...</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                background-color: #f8fafc;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                color: #1e293b;
+              }
+              .container {
+                text-align: center;
+                padding: 2rem;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+                max-width: 400px;
+              }
+              h2 {
+                margin: 0 0 10px 0;
+                font-size: 1.25rem;
+                color: #0f172a;
+              }
+              p {
+                margin: 0;
+                font-size: 0.875rem;
+                color: #64748b;
+              }
+              .spinner {
+                border: 3px solid #f1f5f9;
+                border-top: 3px solid #1a2256;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 16px auto;
+              }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="spinner"></div>
+              <h2>Initializing Document...</h2>
+            </div>
+          </body>
+        </html>
+      `);
+      newTab.document.close(); // Finish document writing stream so the tab can process redirect calls
+    }
+
     try {
       toast({
         title: "Generating Document",
@@ -2338,16 +2402,21 @@ const DealDetailsPage = () => {
 
       const generationId = data["generation-id"] || data["generation_id"];
       if (generationId) {
-        // toast({
-        //   title: "Redirecting",
-        //   description: "Document initialized. Redirecting to Editor...",
-        // });
-        window.location.href = `https://fin-studio.vizru-ras.com/doc/${generationId}`;
+        if (newTab) {
+          // 2. Redirect the already-open tab to the document URL
+          newTab.location.href = `https://fin-studio.vizru-ras.com/doc/${generationId}`;
+        } else {
+          // Fallback if popup blocker still intercepted or window reference lost
+          window.open(`https://fin-studio.vizru-ras.com/doc/${generationId}`, '_blank', 'noopener,noreferrer');
+        }
       } else {
         throw new Error("No generation-id returned from server");
       }
     } catch (error) {
       console.error("Failed to generate document:", error);
+      if (newTab) {
+        newTab.close();
+      }
       toast({
         title: "Error",
         description: "Failed to initialize document generation.",
