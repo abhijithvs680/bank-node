@@ -3,7 +3,7 @@ import { DealCard } from "@/components/DealCard";
 import { DealListRow } from "@/components/DealListRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, Flag, Crosshair } from "lucide-react";
+import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, Flag, Crosshair, FileText } from "lucide-react";
 import UserProfile from "@/components/UserProfile";
 import { apiService } from "@/services/apiService";
 import { Patient } from "@/types/patient";
@@ -157,9 +157,17 @@ const CorporateDealsPage = () => {
               </div>
             </div>
           </div>
-
           <div className="flex items-center gap-4">
-            {/* Market Scan Button */}
+            {/* DOCS Button */}
+            <button
+              onClick={() => window.open("https://fin-studio.vizru-ras.com/", "_blank", "noopener,noreferrer")}
+              className="flex items-center gap-2 animated-docs-btn text-white rounded-[10px] h-10 px-4 shadow-[0_4px_15px_rgba(16,185,129,0.4)] hover:shadow-[0_6px_22px_rgba(16,185,129,0.55)] transition-all duration-200 active:scale-95"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="text-[13px] font-bold tracking-wide whitespace-nowrap">DOC STUDIO</span>
+            </button>
+
+            {/* Corporate X-Ray Button */}
             <button
               onClick={() => navigate("/market-scan")}
               className="flex items-center gap-2 animated-scan-btn text-white rounded-[10px] h-10 px-4 shadow-[0_4px_15px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_22px_rgba(99,102,241,0.55)] transition-all duration-200 active:scale-95"
@@ -264,33 +272,29 @@ const CorporateDealsPage = () => {
                 <div className="flex border-b border-slate-200 mb-6 w-full">
                   <button
                     onClick={() => setActiveTab('active')}
-                    className={`pb-3.5 px-6 text-[15px] font-semibold relative transition-all flex items-center gap-2 ${
-                      activeTab === 'active' 
-                        ? 'text-[#1a2256] border-b-2 border-b-[#1a2256]' 
-                        : 'text-slate-400 hover:text-[#1a2256]/70 border-b-2 border-b-transparent'
-                    }`}
+                    className={`pb-3.5 px-6 text-[15px] font-semibold relative transition-all flex items-center gap-2 ${activeTab === 'active'
+                      ? 'text-[#1a2256] border-b-2 border-b-[#1a2256]'
+                      : 'text-slate-400 hover:text-[#1a2256]/70 border-b-2 border-b-transparent'
+                      }`}
                   >
                     <Clock className={`w-4 h-4 ${activeTab === 'active' ? 'text-blue-600' : 'text-slate-400'}`} />
                     <span>Active Deals</span>
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                      activeTab === 'active' ? 'bg-[#1a2256]/10 text-[#1a2256]' : 'bg-slate-100 text-slate-500'
-                    }`}>
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'active' ? 'bg-[#1a2256]/10 text-[#1a2256]' : 'bg-slate-100 text-slate-500'
+                      }`}>
                       {pendingPatients.length}
                     </span>
                   </button>
                   <button
                     onClick={() => setActiveTab('completed')}
-                    className={`pb-3.5 px-6 text-[15px] font-semibold relative transition-all flex items-center gap-2 ${
-                      activeTab === 'completed' 
-                        ? 'text-[#1a2256] border-b-2 border-b-[#1a2256]' 
-                        : 'text-slate-400 hover:text-[#1a2256]/70 border-b-2 border-b-transparent'
-                    }`}
+                    className={`pb-3.5 px-6 text-[15px] font-semibold relative transition-all flex items-center gap-2 ${activeTab === 'completed'
+                      ? 'text-[#1a2256] border-b-2 border-b-[#1a2256]'
+                      : 'text-slate-400 hover:text-[#1a2256]/70 border-b-2 border-b-transparent'
+                      }`}
                   >
                     <CheckCircle className={`w-4 h-4 ${activeTab === 'completed' ? 'text-emerald-600' : 'text-slate-400'}`} />
                     <span>Completed Deals</span>
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                      activeTab === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                    }`}>
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
                       {completedPatients.length}
                     </span>
                   </button>

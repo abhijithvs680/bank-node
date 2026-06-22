@@ -597,9 +597,17 @@
 }
 
 @keyframes gradient-flow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .animated-btn-gradient {
@@ -609,9 +617,22 @@
 }
 
 @keyframes text-color-change {
-  0%, 100% { color: #ffffff; text-shadow: 0 0 1px rgba(255, 255, 255, 0.4); }
-  33% { color: #e0f2fe; text-shadow: 0 0 2px rgba(224, 242, 254, 0.6); }
-  66% { color: #f5f3ff; text-shadow: 0 0 2px rgba(245, 243, 255, 0.6); }
+
+  0%,
+  100% {
+    color: #ffffff;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.4);
+  }
+
+  33% {
+    color: #e0f2fe;
+    text-shadow: 0 0 2px rgba(224, 242, 254, 0.6);
+  }
+
+  66% {
+    color: #f5f3ff;
+    text-shadow: 0 0 2px rgba(245, 243, 255, 0.6);
+  }
 }
 
 .animate-text-glow {
@@ -619,9 +640,17 @@
 }
 
 @keyframes scan-btn-gradient-flow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .animated-scan-btn {
@@ -633,4 +662,15 @@
 
 .animated-scan-btn:hover {
   box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5) !important;
+}
+
+.animated-docs-btn {
+  background: linear-gradient(270deg, #10b981, #059669, #0d9488, #14b8a6) !important;
+  background-size: 300% 300% !important;
+  animation: scan-btn-gradient-flow 8s ease infinite !important;
+  transition: all 0.3s ease-in-out !important;
+}
+
+.animated-docs-btn:hover {
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5) !important;
 }
