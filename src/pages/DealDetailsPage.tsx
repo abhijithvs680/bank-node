@@ -357,7 +357,7 @@ const DealDetailsPage = () => {
   const [serviceOverlayOpen, setServiceOverlayOpen] = useState(false);
 
   // ── Query Deals chat state ─────────────────────────────────────────────────
-  interface ChatMsg { role: 'user' | 'assistant'; text: string; }
+  interface ChatMsg { role: 'user' | 'assistant'; text: string; engine?: string; }
   const [isQueryChatOpen, setIsQueryChatOpen] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState('cloud-llm');
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([
@@ -442,7 +442,7 @@ const DealDetailsPage = () => {
             } else if (m.text) {
               text = m.text;
             }
-            return { role, text };
+            return { role, text, engine: m.engine };
           });
           msgs = [{ role: 'assistant', text: 'Hi! how can I assist you with the deal?' }, ...loadedMsgs];
         }
@@ -895,6 +895,7 @@ const DealDetailsPage = () => {
         {
           role: 'assistant',
           text: data.answer || "Sorry, I couldn't find an answer to that.",
+          engine: data.engine || selectedEngine,
         },
       ]);
     } catch (error) {
@@ -3207,6 +3208,14 @@ const DealDetailsPage = () => {
                         >
                           {msg.role === 'assistant' ? (
                             <>
+                              {msg.engine && (
+                                <div className="flex items-center gap-1.5 mb-2.5 border-b border-slate-100 pb-2.5">
+                                  <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">Engine:</span>
+                                  <span className="text-[10px] font-bold text-[#1a2256] bg-[#1a2256]/5 px-2 py-0.5 rounded-md border border-[#1a2256]/10">
+                                    {msg.engine === 'cloud-llm' ? 'Cloud-LLM' : msg.engine === 'on-premises' ? 'On-Premises' : msg.engine === 'on-premises-lora' ? 'On-Premises-LoRA' : msg.engine}
+                                  </span>
+                                </div>
+                              )}
                               <ChatMarkdownRenderer content={msg.text} />
                               <button
                                 onClick={() => {
