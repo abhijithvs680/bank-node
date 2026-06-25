@@ -490,7 +490,7 @@ export function speakMessage(message: string): boolean {
 let geminiSocket: WebSocket | null = null;
 let geminiAudioCtx: AudioContext | null = null;
 let geminiStream: MediaStream | null = null;
-let geminiProcessor: ScriptProcessorNode | null = null;
+let geminiProcessor: any = null;
 let geminiIsRecording = false;
 let geminiIsSetupComplete = false;
 
@@ -662,6 +662,8 @@ export async function startGeminiVoiceAgent(
 ): Promise<boolean> {
   if (geminiIsRecording) return false;
   geminiIsRecording = true;
+  currentTurnText = "";
+  if (turnCompleteTimeout) clearTimeout(turnCompleteTimeout);
   startVoiceIdleMonitor();
   attachModalOutcomeListener();
 
@@ -696,17 +698,18 @@ export async function startGeminiVoiceAgent(
       audioPlayStartTime = geminiAudioCtx.currentTime;
       geminiStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const source = geminiAudioCtx.createMediaStreamSource(geminiStream);
-      // Reduce buffer size to 512 to process very short audio chunks and minimize transcription latency.
-      geminiProcessor = geminiAudioCtx.createScriptProcessor(512, 1, 1);
+      
+      // Load the background processor file
+      await geminiAudioCtx.audioWorklet.addModule('/audio-processor.js');
 
-      // IMPORTANT: Do NOT connect the processor to destination yet. We must wait for setupComplete to avoid 1011 error.
-      // We attach the stream processor logic here, but it only fires if `isSetupComplete` is true.
+      // Instantiate the custom worklet node
+      geminiProcessor = new AudioWorkletNode(geminiAudioCtx, 'gemini-audio-processor');
 
-      geminiProcessor.onaudioprocess = (e) => {
+      geminiProcessor.port.onmessage = (event: MessageEvent) => {
         // Wait until `setupComplete` has been received in handleGeminiMessage
         // We track this with a global flag defined near geminiIsRecording
         if (!geminiIsRecording || !geminiIsSetupComplete || !geminiSocket || geminiSocket.readyState !== WebSocket.OPEN) return;
-        const inputData = e.inputBuffer.getChannelData(0);
+        const inputData = event.data;
         const pcm16 = floatTo16BitPCM(inputData);
         // Base64 encode
         const bytes = new Uint8Array(pcm16.buffer);
@@ -714,7 +717,7 @@ export async function startGeminiVoiceAgent(
         bytes.forEach((b) => binary += String.fromCharCode(b));
         const base64Audio = window.btoa(binary);
 
-        const msg = {
+        const mediaMessage = {
           realtimeInput: {
             audio: {
               mimeType: "audio/pcm;rate=16000",
@@ -722,13 +725,12 @@ export async function startGeminiVoiceAgent(
             }
           }
         };
-        geminiSocket.send(JSON.stringify(msg));
-        // console.log("➡️ [MIC] Sent 16kHz audio chunk to Gemini");
+        geminiSocket?.send(JSON.stringify(mediaMessage));
       };
 
       source.connect(geminiProcessor);
       geminiProcessor.connect(geminiAudioCtx.destination);
-    }, 50);
+    }, 500);
   };
 
   geminiSocket.onmessage = (event) => {
@@ -760,11 +762,14 @@ export async function startGeminiVoiceAgent(
   return true;
 }
 
+let currentTurnText = "";
+let turnCompleteTimeout: any = null;
+
 function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOnly: boolean = false) {
   recordVoiceInteraction(msg);
   // To avoid spam, we won't log raw audio bytes, but we'll log everything else
   if (msg.serverContent && msg.serverContent.modelTurn && msg.serverContent.modelTurn.parts) {
-    console.log("⬅️ [GEMINI RESPONSE PARTS]:", msg.serverContent.modelTurn.parts.map(p => Object.keys(p)));
+    console.log("⬅️ [GEMINI RESPONSE PARTS]:", msg.serverContent.modelTurn.parts.map((p: any) => Object.keys(p)));
   } else {
     // These are usually just turnComplete signals or token usage metadata, not actual errors.
     console.log("⬅️ [GEMINI SYSTEM MSG]:", msg);
@@ -792,10 +797,34 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
         if (!listenOnly && part.inlineData && part.inlineData.mimeType?.startsWith("audio/pcm")) {
           playGeminiAudioFrame(part.inlineData.data, 24000);
         }
-        // Text transcript output
+        // Text transcript output / Audio fallback transcript
         if (part.text) {
-          callbacks?.onTranscript?.(part.text);
+          currentTurnText += part.text;
+        } else if (part.inlineData && !currentTurnText) {
+          currentTurnText = "Voice response received (Audio)";
         }
+        
+        if (currentTurnText) {
+          callbacks?.onTranscript?.(currentTurnText);
+
+          if (turnCompleteTimeout) clearTimeout(turnCompleteTimeout);
+          turnCompleteTimeout = setTimeout(() => {
+            if (currentTurnText) {
+              console.log("✅ Gemini Turn Complete (timeout fallback). Full text:", currentTurnText);
+              callbacks?.onAIOutput?.(currentTurnText);
+              currentTurnText = "";
+            }
+          }, 1500);
+        }
+      }
+    }
+
+    if (msg.serverContent.turnComplete || msg.turnComplete) {
+      if (turnCompleteTimeout) clearTimeout(turnCompleteTimeout);
+      if (currentTurnText) {
+        console.log("✅ Gemini Turn Complete (signal). Full text:", currentTurnText);
+        callbacks?.onAIOutput?.(currentTurnText);
+        currentTurnText = "";
       }
     }
   }

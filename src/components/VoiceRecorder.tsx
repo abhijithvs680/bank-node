@@ -76,6 +76,11 @@ export const VoiceRecorder = ({
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<{ user: string; ai: string }[]>([]);
   const [showIdleModal, setShowIdleModal] = useState(false);
+  const [showEnginePopover, setShowEnginePopover] = useState(false);
+  const [selectedVoiceEngine, setSelectedVoiceEngine] = useState('cloud-llm');
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const lastUserPromptRef = useRef<string>('');
+  const sessionIdRef = useRef<string>('');
 
   // Stop voice when the route/path changes
   const location = useLocation();
@@ -202,10 +207,41 @@ export const VoiceRecorder = ({
     return () => document.removeEventListener('voice-agent-idle-timeout', handleIdleTimeout);
   }, []);
 
+  // Close popover when clicking outside
+  useEffect(() => {
+    if (!showEnginePopover) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setShowEnginePopover(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEnginePopover]);
+
+  // Fire-and-forget voice analytics recording
+  const recordVoiceAnalytics = (prompt: string, answer: string) => {
+    const finalPrompt = prompt || "Voice query (audio stream)";
+    const finalAnswer = answer || "Audio response generated";
+    if (!admissionId) return;
+    fetch(`${API_BASE_URL}/record_voice_analytics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: finalPrompt,
+        answer: finalAnswer,
+        deal_id: admissionId,
+        engine: selectedVoiceEngine,
+        session_id: sessionIdRef.current || crypto.randomUUID(),
+      }),
+    }).catch(err => console.error('Voice analytics recording failed:', err));
+  };
+
   const handleButtonClick = async () => {
     if (!isRecording) {
       setLoading(true);
       setError(null);
+      sessionIdRef.current = crypto.randomUUID();
       try {
         // Fetch voice key and deal index in parallel; only schema goes to Gemini (rows load on demand).
         const [res, dealContextRecord] = await Promise.all([
@@ -230,6 +266,7 @@ export const VoiceRecorder = ({
 
         recognitionRef.current = startContinuousSpeechRecognition((userText) => {
           touchVoiceAgentActivity();
+          lastUserPromptRef.current = userText;
           setMessages(prev => [...prev, { user: userText, ai: '' }]);
         });
 
@@ -264,6 +301,7 @@ export const VoiceRecorder = ({
             },
             onAIOutput: (text) => {
               console.log("AI output:", text);
+              recordVoiceAnalytics("Voice query passed", text);
             }
           });
         setLoading(false);
@@ -298,7 +336,7 @@ export const VoiceRecorder = ({
 
 
   return (
-    <div className=" bg-gradient-bg flex items-center  ">
+    <div className="relative bg-gradient-bg flex items-center">
       <VoiceIdleModal open={showIdleModal} onClose={() => setShowIdleModal(false)} />
       {loading ? (
         <div className={`_gradient-border ${voiceMode ? 'active' : ''} `}>
@@ -342,11 +380,73 @@ export const VoiceRecorder = ({
           </div>
         </div>) : <button
           className="flex items-center  gap-2  bg-[#fdc148] hover:bg-[#f5b530] text-[#1a2256] rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(253,193,72,0.3)] hover:shadow-[0_6px_25px_rgba(253,193,72,0.4)] transition-all duration-300 active:scale-95"
-          onClick={handleButtonClick}
+          onClick={() => setShowEnginePopover(prev => !prev)}
         >
           <img src={handfreeMagicSvg} alt="" className="w-5 h-5" />
           <span className="text-[12px] font-semibold font-['Inter']   whitespace-nowrap">Hands-Free Mode</span>
         </button>}
+
+      {/* Engine Selection Popover */}
+      {showEnginePopover && !isRecording && !loading && (
+        <div
+          ref={popoverRef}
+          className="absolute top-full right-0 mt-2 z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 w-[260px]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-[#fdc148]/20 flex items-center justify-center">
+                <img src={handfreeMagicSvg} alt="" className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[12px] font-bold text-[#1a2256]">Select Engine</h4>
+                <p className="text-[9px] text-slate-400 font-medium">Choose execution engine for voice mode</p>
+              </div>
+            </div>
+            <div className="space-y-1.5 mb-3">
+              {[
+                { value: 'cloud-llm', label: 'Cloud-LLM', desc: 'Cloud-hosted model', color: 'blue' },
+                { value: 'on-premises', label: 'On-Premises', desc: 'Local infrastructure', color: 'violet' },
+                { value: 'on-premises-lora', label: 'On-Premises-LoRA', desc: 'Fine-tuned local model', color: 'emerald' },
+              ].map(opt => {
+                const isSelected = selectedVoiceEngine === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSelectedVoiceEngine(opt.value)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
+                      isSelected
+                        ? 'bg-[#1a2256] text-white shadow-md'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      isSelected ? 'bg-white' : `bg-${opt.color}-400`
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-[11px] font-bold block ${isSelected ? 'text-white' : 'text-[#1a2256]'}`}>{opt.label}</span>
+                      <span className={`text-[9px] font-medium ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>{opt.desc}</span>
+                    </div>
+                    {isSelected && (
+                      <svg className="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                setShowEnginePopover(false);
+                handleButtonClick();
+              }}
+              className="w-full h-9 bg-[#fdc148] hover:bg-[#f5b530] text-[#1a2256] text-[12px] font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
+            >
+              Start Voice Mode
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 

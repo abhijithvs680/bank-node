@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import CorporateDealsPage from "./pages/CorporateDealsPage";
 import DealDetailsPage from "./pages/DealDetailsPage";
+import DealAnalyticsPage from "./pages/DealAnalyticsPage";
 import SearchPage from "./pages/SearchPage";
 import BorrowerDetailsPage from "./pages/BorrowerDetailsPage";
 import MarketScanPage from "./pages/MarketScanPage";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/" element={<ProtectedRoute><Navigate to="/corporate-deals" replace /></ProtectedRoute>} />
               <Route path="/corporate-deals" element={<ProtectedRoute><CorporateDealsPage /></ProtectedRoute>} />
               <Route path="/deals/:consultationId" element={<ProtectedRoute><DealDetailsPage /></ProtectedRoute>} />
+              <Route path="/deals/:consultationId/analytics" element={<ProtectedRoute><DealAnalyticsPage /></ProtectedRoute>} />
               <Route path="/borrower/:consultationId" element={<ProtectedRoute><BorrowerDetailsPage /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
               <Route path="/market-scan" element={<ProtectedRoute><MarketScanPage /></ProtectedRoute>} />

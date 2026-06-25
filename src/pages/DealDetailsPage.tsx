@@ -27,6 +27,7 @@ import { EditMedicationModal } from "@/components/EditMedicationModal";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { AIObservations } from "@/components/AIObservations";
 import { RelativeTime } from "@/components/RelativeTime";
 import { SafeHTMLRenderer } from '@/components/SafeHTMLRenderer';
@@ -73,6 +74,7 @@ import {
   Upload,
   User,
   User2,
+  BarChart3,
   X as XIcon
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -2450,7 +2452,7 @@ const DealDetailsPage = () => {
   return (
     <div className="min-h-screen bg-[#ebeef9]">
       {/* Header - Gradient Theme */}
-      <header className="relative overflow-hidden bg-[#1a2256] h-20 sticky top-0 z-50">
+      <header className="relative bg-[#1a2256] h-20 sticky top-0 z-[9999]">
         {/* Background Gradients */}
         <div className="absolute top-0 right-0 w-[600px] h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
         <div className="absolute top-0 left-0 w-[400px] h-full bg-gradient-to-r from-blue-600/10 to-transparent pointer-events-none" />
@@ -2533,6 +2535,13 @@ const DealDetailsPage = () => {
                 surName: patient.surName,
               }}
             />
+            <button
+              onClick={() => navigate(`/deals/${consultationId}/analytics`)}
+              className="flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white rounded-[8px] h-10 px-4 shadow-[0_4px_15px_rgba(100,116,139,0.3)] hover:shadow-[0_6px_22px_rgba(100,116,139,0.45)] transition-all duration-200 active:scale-95"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="text-[12px] font-semibold font-['Inter'] whitespace-nowrap">Analytics</span>
+            </button>
             <div className="h-[53px] border-l border-white/30" />
             <UserProfile variant="header" />
           </div>
@@ -3118,16 +3127,66 @@ const DealDetailsPage = () => {
                     <SelectTrigger className="h-8 px-3 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 outline-none focus:border-[#1a2256] focus:bg-white transition-all cursor-pointer shadow-sm hover:border-slate-300 w-[200px] justify-between gap-2">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-[99999]">
-                      <SelectItem value="cloud-llm" className="text-xs font-medium cursor-pointer rounded-lg py-1.5 pl-8 pr-3 hover:bg-[#1a2256] hover:text-white focus:bg-[#1a2256] focus:text-white transition-colors">
-                        Cloud-LLM
-                      </SelectItem>
-                      <SelectItem value="on-premises" className="text-xs font-medium cursor-pointer rounded-lg py-1.5 pl-8 pr-3 hover:bg-[#1a2256] hover:text-white focus:bg-[#1a2256] focus:text-white transition-colors">
-                        On-Premises
-                      </SelectItem>
-                      <SelectItem value="on-premises-lora" className="text-xs font-medium cursor-pointer rounded-lg py-1.5 pl-8 pr-3 hover:bg-[#1a2256] hover:text-white focus:bg-[#1a2256] focus:text-white transition-colors">
-                        On-Premises-LoRA
-                      </SelectItem>
+                    <SelectContent className="bg-white border border-slate-200 rounded-2xl shadow-xl p-2 z-[99999] w-[260px]">
+                      <SelectPrimitive.Item
+                        value="cloud-llm"
+                        className={`relative flex w-full cursor-pointer select-none items-center rounded-xl p-3 my-1 outline-none transition-all ${selectedEngine === 'cloud-llm' ? 'bg-[#1a2256] text-white shadow-md' : 'bg-slate-50/50 hover:bg-slate-100 text-[#1a2256]'}`}
+                      >
+                        <div className="flex items-center w-full gap-3">
+                          <div className="w-3 h-3 flex items-center justify-center shrink-0 ml-1">
+                            {selectedEngine === 'cloud-llm' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                          </div>
+                          <div className="flex flex-col flex-1 py-0.5">
+                            <SelectPrimitive.ItemText asChild>
+                              <span className="text-xs font-bold leading-tight">Cloud-LLM</span>
+                            </SelectPrimitive.ItemText>
+                            <span className={`text-[10px] ${selectedEngine === 'cloud-llm' ? 'text-slate-200' : 'text-slate-400'} mt-0.5 font-normal`}>Cloud-hosted model</span>
+                          </div>
+                          {selectedEngine === 'cloud-llm' && (
+                            <Check className="w-4 h-4 text-white ml-auto mr-1 shrink-0" />
+                          )}
+                        </div>
+                      </SelectPrimitive.Item>
+
+                      <SelectPrimitive.Item
+                        value="on-premises"
+                        className={`relative flex w-full cursor-pointer select-none items-center rounded-xl p-3 my-1 outline-none transition-all ${selectedEngine === 'on-premises' ? 'bg-[#1a2256] text-white shadow-md' : 'bg-slate-50/50 hover:bg-slate-100 text-[#1a2256]'}`}
+                      >
+                        <div className="flex items-center w-full gap-3">
+                          <div className="w-3 h-3 flex items-center justify-center shrink-0 ml-1">
+                            {selectedEngine === 'on-premises' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                          </div>
+                          <div className="flex flex-col flex-1 py-0.5">
+                            <SelectPrimitive.ItemText asChild>
+                              <span className="text-xs font-bold leading-tight">On-Premises</span>
+                            </SelectPrimitive.ItemText>
+                            <span className={`text-[10px] ${selectedEngine === 'on-premises' ? 'text-slate-200' : 'text-slate-400'} mt-0.5 font-normal`}>Local infrastructure</span>
+                          </div>
+                          {selectedEngine === 'on-premises' && (
+                            <Check className="w-4 h-4 text-white ml-auto mr-1 shrink-0" />
+                          )}
+                        </div>
+                      </SelectPrimitive.Item>
+
+                      <SelectPrimitive.Item
+                        value="on-premises-lora"
+                        className={`relative flex w-full cursor-pointer select-none items-center rounded-xl p-3 my-1 outline-none transition-all ${selectedEngine === 'on-premises-lora' ? 'bg-[#1a2256] text-white shadow-md' : 'bg-slate-50/50 hover:bg-slate-100 text-[#1a2256]'}`}
+                      >
+                        <div className="flex items-center w-full gap-3">
+                          <div className="w-3 h-3 flex items-center justify-center shrink-0 ml-1">
+                            {selectedEngine === 'on-premises-lora' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                          </div>
+                          <div className="flex flex-col flex-1 py-0.5">
+                            <SelectPrimitive.ItemText asChild>
+                              <span className="text-xs font-bold leading-tight">On-Premises-LoRA</span>
+                            </SelectPrimitive.ItemText>
+                            <span className={`text-[10px] ${selectedEngine === 'on-premises-lora' ? 'text-slate-200' : 'text-slate-400'} mt-0.5 font-normal`}>Fine-tuned local model</span>
+                          </div>
+                          {selectedEngine === 'on-premises-lora' && (
+                            <Check className="w-4 h-4 text-white ml-auto mr-1 shrink-0" />
+                          )}
+                        </div>
+                      </SelectPrimitive.Item>
                     </SelectContent>
                   </Select>
                 </div>
