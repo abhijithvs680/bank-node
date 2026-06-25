@@ -26,6 +26,7 @@ import { AddFindingModal } from "@/components/AddFindingModal";
 import { EditMedicationModal } from "@/components/EditMedicationModal";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AIObservations } from "@/components/AIObservations";
 import { RelativeTime } from "@/components/RelativeTime";
 import { SafeHTMLRenderer } from '@/components/SafeHTMLRenderer';
@@ -358,6 +359,7 @@ const DealDetailsPage = () => {
   // ── Query Deals chat state ─────────────────────────────────────────────────
   interface ChatMsg { role: 'user' | 'assistant'; text: string; }
   const [isQueryChatOpen, setIsQueryChatOpen] = useState(false);
+  const [selectedEngine, setSelectedEngine] = useState('cloud-llm');
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([
     { role: 'assistant', text: 'Hi! how can I assist you with the deal?' },
   ]);
@@ -863,6 +865,7 @@ const DealDetailsPage = () => {
             file_id: activeDocumentChat.fileId,
             session_id: activeDocumentChat.sessionId,
             user_query: text,
+            engine: selectedEngine,
           }),
         });
       } else {
@@ -875,7 +878,8 @@ const DealDetailsPage = () => {
             deal_id: consultationId || '',
             session_id: targetSessionId,
             user_query: text,
-            deal_data: extendedDeal
+            deal_data: extendedDeal,
+            engine: selectedEngine,
           }),
         });
       }
@@ -3106,12 +3110,33 @@ const DealDetailsPage = () => {
                   <span className="text-[9px] text-slate-500 font-medium">General Assistant</span>
                 </div>
               </div>
-              <button
-                onClick={() => setIsQueryChatOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
-              >
-                <XIcon className="w-4 h-4 text-slate-400" />
-              </button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Engine:</span>
+                  <Select value={selectedEngine} onValueChange={setSelectedEngine}>
+                    <SelectTrigger className="h-8 px-3 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 outline-none focus:border-[#1a2256] focus:bg-white transition-all cursor-pointer shadow-sm hover:border-slate-300 w-[200px] justify-between gap-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-[99999]">
+                      <SelectItem value="cloud-llm" className="text-xs font-medium cursor-pointer rounded-lg py-1.5 pl-8 pr-3 hover:bg-[#1a2256] hover:text-white focus:bg-[#1a2256] focus:text-white transition-colors">
+                        Cloud-LLM
+                      </SelectItem>
+                      <SelectItem value="on-premises" className="text-xs font-medium cursor-pointer rounded-lg py-1.5 pl-8 pr-3 hover:bg-[#1a2256] hover:text-white focus:bg-[#1a2256] focus:text-white transition-colors">
+                        On-Premises
+                      </SelectItem>
+                      <SelectItem value="on-premises-lora" className="text-xs font-medium cursor-pointer rounded-lg py-1.5 pl-8 pr-3 hover:bg-[#1a2256] hover:text-white focus:bg-[#1a2256] focus:text-white transition-colors">
+                        On-Premises-LoRA
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <button
+                  onClick={() => setIsQueryChatOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                >
+                  <XIcon className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
             </div>
 
             {/* Content Switcher */}
