@@ -324,11 +324,11 @@ const DealAnalyticsPage = () => {
                       <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#10b981]" /><span className="text-slate-600">Candidate</span></div>
                     </div>
                   </div>
-                  <div className="h-[220px] w-full">
+                  <div className="h-[270px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <BarChart data={chartData} margin={{ top: 10, right: 15, left: 15, bottom: 35 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="engine" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                        <XAxis dataKey="engine" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} interval={0} angle={-25} textAnchor="end" height={65} />
                         <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} tickFormatter={(val) => `${val}`} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="avgPromptTokens" name="Avg Prompt Tokens" stackId="a" fill="#2563eb" radius={[0, 0, 4, 4]} maxBarSize={48} />
@@ -350,11 +350,11 @@ const DealAnalyticsPage = () => {
                       <span className="text-slate-600">Latency (ms)</span>
                     </div>
                   </div>
-                  <div className="h-[220px] w-full">
+                  <div className="h-[270px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <BarChart data={chartData} margin={{ top: 10, right: 15, left: 15, bottom: 35 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="engine" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                        <XAxis dataKey="engine" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} interval={0} angle={-25} textAnchor="end" height={65} />
                         <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} tickFormatter={(val) => `${val}ms`} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="avgLatency" name="Avg Latency" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={48} />
@@ -375,11 +375,11 @@ const DealAnalyticsPage = () => {
                       <span className="text-slate-600">Cost ($)</span>
                     </div>
                   </div>
-                  <div className="h-[220px] w-full">
+                  <div className="h-[270px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <BarChart data={chartData} margin={{ top: 10, right: 15, left: 15, bottom: 35 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="engine" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                        <XAxis dataKey="engine" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} interval={0} angle={-25} textAnchor="end" height={65} />
                         <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} tickFormatter={(val) => `$${val.toFixed(3)}`} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="totalCost" name="Total Cost" fill="#0284c7" radius={[4, 4, 0, 0]} maxBarSize={48} />
