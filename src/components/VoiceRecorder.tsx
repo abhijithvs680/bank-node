@@ -274,12 +274,12 @@ export const VoiceRecorder = ({
           ? getAllStaticContextForDeal(admissionId || '', patientData)
           : null;
         const dealContextText = getDealContextTextForPrompt(dealContextRecord);
-        const geminiTools = getGeminiVoiceTools(dealContextRecord);
+        const geminiTools = selectedVoiceEngine === 'on-premises' ? [] : getGeminiVoiceTools(dealContextRecord);
         const systemInstructionsString = buildDealVoiceSystemInstructions(
           admissionId || '',
           extendedContextData ?? { dealId: admissionId },
           dealContextText,
-          { waitForUser: true }
+          { waitForUser: true, engine: selectedVoiceEngine }
         );
 
         await startGeminiVoiceAgent(
