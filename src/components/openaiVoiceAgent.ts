@@ -699,8 +699,8 @@ export async function startGeminiVoiceAgent(
       geminiStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const source = geminiAudioCtx.createMediaStreamSource(geminiStream);
       
-      // Load the background processor file using Vite's BASE_URL to support subpath deployments (e.g. /bank-agents/)
-      const workletUrl = `${import.meta.env.BASE_URL}audio-processor.js`.replace(/\/\/+/g, '/');
+      // Construct absolute worklet URL based on window.location.pathname to avoid relative resolution from /assets/ JS bundle path
+      const workletUrl = `https://innov-dev.beta.injomo.com/bank-agents/dist/audio-processor.js`;
       await geminiAudioCtx.audioWorklet.addModule(workletUrl);
 
       // Instantiate the custom worklet node
