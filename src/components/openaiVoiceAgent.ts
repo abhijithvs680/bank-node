@@ -699,8 +699,9 @@ export async function startGeminiVoiceAgent(
       geminiStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const source = geminiAudioCtx.createMediaStreamSource(geminiStream);
       
-      // Load the background processor file
-      await geminiAudioCtx.audioWorklet.addModule('/audio-processor.js');
+      // Load the background processor file using Vite's BASE_URL to support subpath deployments (e.g. /bank-agents/)
+      const workletUrl = `${import.meta.env.BASE_URL}audio-processor.js`.replace(/\/\/+/g, '/');
+      await geminiAudioCtx.audioWorklet.addModule(workletUrl);
 
       // Instantiate the custom worklet node
       geminiProcessor = new AudioWorkletNode(geminiAudioCtx, 'gemini-audio-processor');
