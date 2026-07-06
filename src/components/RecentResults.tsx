@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Settings, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot, Trash2, ClipboardCheck } from 'lucide-react';
+import { FileText, Upload, Settings, Loader2, ChevronDown, ChevronUp, CheckCircle2, Bot, Trash2, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { LabResult } from '@/types/patient';
 import { PDFSidebar } from './PDFSidebar';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -20,6 +20,7 @@ import { deleteDealFile } from '@/services/dealNoteService';
 import { uploadDealDocument, runDealFileChecklist } from '@/services/dealFileService';
 import { RunChecklistModal } from '@/components/RunChecklistModal';
 import { useToast } from '@/hooks/use-toast';
+import { DataRedactModal } from './DataRedactModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
 
@@ -414,6 +415,8 @@ export const RecentResults = ({
   const [viewingTargetPage, setViewingTargetPage] = useState<number | undefined>(undefined);
   const [viewingTargetBoxes, setViewingTargetBoxes] = useState<BoundingBox[]>([]);
   const [checklistModalFile, setChecklistModalFile] = useState<UploadedFile | null>(null);
+  const [isRedactModalOpen, setIsRedactModalOpen] = useState(false);
+  const [selectedRedactOptions, setSelectedRedactOptions] = useState<string[]>([]);
 
   // Sort uploaded files so that the last uploaded document is first in order
   const sortedFilesForDisplay = useMemo(() => {
@@ -585,7 +588,7 @@ export const RecentResults = ({
     setUploadedFiles(prev => [newFile, ...prev]);
 
     try {
-      const data = await uploadDealDocument(admissionId || 'unknown', file);
+      const data = await uploadDealDocument(admissionId || 'unknown', file, selectedRedactOptions);
       
       setUploadedFiles(prev => prev.map(f => 
         f.id === tempId 
@@ -704,6 +707,14 @@ export const RecentResults = ({
         </div>
         <div className="flex items-center gap-2">
           <Button
+            onClick={() => setIsRedactModalOpen(true)}
+            variant="outline"
+            className="flex items-center justify-center rounded-[10px] w-9 h-9 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all active:scale-95 border border-slate-200"
+            title="Configure Data Redact"
+          >
+            <ShieldAlert className="w-4 h-4" />
+          </Button>
+          <Button
             onClick={() => admissionId && navigate(`/clause-management?deal_id=${encodeURIComponent(admissionId)}`)}
             variant="outline"
             disabled={!admissionId}
@@ -737,6 +748,13 @@ export const RecentResults = ({
       <div className="grid grid-cols-1 gap-3 medical-scroll max-h-[600px] overflow-y-auto pr-2">
         {renderContent()}
       </div>
+
+      <DataRedactModal
+        isOpen={isRedactModalOpen}
+        onClose={() => setIsRedactModalOpen(false)}
+        selectedOptions={selectedRedactOptions}
+        onSelectionChange={setSelectedRedactOptions}
+      />
 
       {viewingFileUrl && (
         <PDFSidebar

@@ -36,13 +36,18 @@ export interface ChecklistAchievementItem {
 
 export async function uploadDealDocument(
   dealId: string,
-  file: File
+  file: File,
+  redactOptions?: string[]
 ): Promise<{ file_id: string; file_name: string; deal_id: string }> {
   const formData = new FormData();
   formData.append('deal_id', dealId);
-  formData.append('file', file);
+  formData.append('upload_file[]', file);
+  formData.append('action', 'processFile');
+  if (redactOptions && redactOptions.length > 0) {
+    formData.append('redact_options', JSON.stringify(redactOptions));
+  }
 
-  const response = await fetch(`${API_BASE_URL}/analyze_document`, {
+  const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
     method: 'POST',
     body: formData,
   });
