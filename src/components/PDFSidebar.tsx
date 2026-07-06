@@ -132,6 +132,8 @@ export const PDFSidebar = ({
   const [numPages, setNumPages] = useState<number | null>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const pdfScale = pdfZoom / 100;
+  const [pdfFile, setPdfFile] = useState<any>(null);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   useEffect(() => {
     if (numPages && targetPage && pageRefs.current[targetPage]) {
@@ -374,6 +376,39 @@ export const PDFSidebar = ({
 
   const isPDF = currentReport.mimeType === 'application/pdf';
   const isImage = currentReport.mimeType?.startsWith('image/');
+
+  useEffect(() => {
+    if (!currentReport?.fileUrl || isImage) return;
+
+    let isMounted = true;
+    setPdfFile(null);
+    setIsPdfLoading(true);
+    
+    // Fetch manually to bypass ngrok warning, ensuring headers are sent from the main thread
+    fetch(currentReport.fileUrl, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    })
+    .then(res => res.blob())
+    .then(blob => {
+      if (!isMounted) return;
+      const objectUrl = URL.createObjectURL(blob);
+      setPdfFile(objectUrl);
+      setIsPdfLoading(false);
+    })
+    .catch(err => {
+      console.error('Failed to fetch PDF via Blob', err);
+      if (isMounted) {
+        setPdfFile(currentReport.fileUrl); // fallback
+        setIsPdfLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentReport?.fileUrl, isImage]);
 
   // Determine which zoom controls to show
   const currentZoom = isImage ? Math.round(imageZoom * 100) : pdfZoom;
@@ -650,30 +685,34 @@ export const PDFSidebar = ({
                   className="w-full h-full overflow-y-auto bg-[#4b4e51] py-6"
                   onWheel={handlePdfWheel}
                 >
-                  <Document
-                    file={{ url: currentReport.fileUrl, httpHeaders: { 'ngrok-skip-browser-warning': 'true' } }}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div className="text-white text-center py-8">Streaming document...</div>}
-                    error={<div className="text-red-400 text-center py-8">Failed to load PDF.</div>}
-                  >
-                    {Array.from(new Array(numPages || 0), (el, index) => {
-                      const pageNumber = index + 1;
-                      const pageBoxes =
-                        targetBoxes?.filter((box) => getBoxPageNumber(box) === pageNumber) ?? [];
+                  {isPdfLoading ? (
+                    <div className="text-white text-center py-8">Streaming document...</div>
+                  ) : (
+                    <Document
+                      file={pdfFile}
+                      onLoadSuccess={onDocumentLoadSuccess}
+                      loading={<div className="text-white text-center py-8">Parsing document...</div>}
+                      error={<div className="text-red-400 text-center py-8">Failed to load PDF.</div>}
+                    >
+                      {Array.from(new Array(numPages || 0), (el, index) => {
+                        const pageNumber = index + 1;
+                        const pageBoxes =
+                          targetBoxes?.filter((box) => getBoxPageNumber(box) === pageNumber) ?? [];
 
-                      return (
-                        <PdfPageWithHighlights
-                          key={pageNumber}
-                          pageNumber={pageNumber}
-                          scale={pdfZoom / 100}
-                          boxes={pageBoxes}
-                          onPageRef={(el) => {
-                            pageRefs.current[pageNumber] = el;
-                          }}
-                        />
-                      );
-                    })}
-                  </Document>
+                        return (
+                          <PdfPageWithHighlights
+                            key={pageNumber}
+                            pageNumber={pageNumber}
+                            scale={pdfZoom / 100}
+                            boxes={pageBoxes}
+                            onPageRef={(el) => {
+                              pageRefs.current[pageNumber] = el;
+                            }}
+                          />
+                        );
+                      })}
+                    </Document>
+                  )}
                 </div>
               )}
             </div>
