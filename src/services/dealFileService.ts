@@ -57,7 +57,8 @@ export async function uploadDealDocument(
     throw new Error(errBody.detail || `Upload failed: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export async function fetchDealClauseGroups(dealId: string): Promise<DealClauseGroup[]> {

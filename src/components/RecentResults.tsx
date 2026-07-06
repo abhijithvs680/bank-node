@@ -416,7 +416,18 @@ export const RecentResults = ({
   const [viewingTargetBoxes, setViewingTargetBoxes] = useState<BoundingBox[]>([]);
   const [checklistModalFile, setChecklistModalFile] = useState<UploadedFile | null>(null);
   const [isRedactModalOpen, setIsRedactModalOpen] = useState(false);
-  const [selectedRedactOptions, setSelectedRedactOptions] = useState<string[]>([]);
+  const [selectedRedactOptions, setSelectedRedactOptions] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('redactOptions');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('redactOptions', JSON.stringify(selectedRedactOptions));
+  }, [selectedRedactOptions]);
 
   // Sort uploaded files so that the last uploaded document is first in order
   const sortedFilesForDisplay = useMemo(() => {
