@@ -651,7 +651,7 @@ export const PDFSidebar = ({
                   onWheel={handlePdfWheel}
                 >
                   <Document
-                    file={currentReport.fileUrl}
+                    file={{ url: currentReport.fileUrl, httpHeaders: { 'ngrok-skip-browser-warning': 'true' } }}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={<div className="text-white text-center py-8">Streaming document...</div>}
                     error={<div className="text-red-400 text-center py-8">Failed to load PDF.</div>}
