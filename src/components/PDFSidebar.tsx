@@ -372,43 +372,50 @@ export const PDFSidebar = ({
     }
   };
 
-  if (!currentReport) return null;
-
-  const isPDF = currentReport.mimeType === 'application/pdf';
-  const isImage = currentReport.mimeType?.startsWith('image/');
-
+  // Fetch PDF as blob to bypass ngrok/proxy interstitial pages
+  const currentFileUrl = currentReport?.fileUrl;
+  const currentMimeType = currentReport?.mimeType;
   useEffect(() => {
-    if (!currentReport?.fileUrl || isImage) return;
+    if (!currentFileUrl || currentMimeType?.startsWith('image/')) return;
 
     let isMounted = true;
+    let objectUrl: string | null = null;
     setPdfFile(null);
     setIsPdfLoading(true);
     
-    // Fetch manually to bypass ngrok warning, ensuring headers are sent from the main thread
-    fetch(currentReport.fileUrl, {
+    fetch(currentFileUrl, {
       headers: {
         'ngrok-skip-browser-warning': 'true'
       }
     })
-    .then(res => res.blob())
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.blob();
+    })
     .then(blob => {
       if (!isMounted) return;
-      const objectUrl = URL.createObjectURL(blob);
+      objectUrl = URL.createObjectURL(blob);
       setPdfFile(objectUrl);
       setIsPdfLoading(false);
     })
     .catch(err => {
-      console.error('Failed to fetch PDF via Blob', err);
+      console.error('Failed to fetch PDF via Blob:', err);
       if (isMounted) {
-        setPdfFile(currentReport.fileUrl); // fallback
+        setPdfFile(currentFileUrl); // fallback to direct URL
         setIsPdfLoading(false);
       }
     });
 
     return () => {
       isMounted = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [currentReport?.fileUrl, isImage]);
+  }, [currentFileUrl, currentMimeType]);
+
+  if (!currentReport) return null;
+
+  const isPDF = currentReport.mimeType === 'application/pdf';
+  const isImage = currentReport.mimeType?.startsWith('image/');
 
   // Determine which zoom controls to show
   const currentZoom = isImage ? Math.round(imageZoom * 100) : pdfZoom;
