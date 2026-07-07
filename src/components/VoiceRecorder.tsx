@@ -448,7 +448,7 @@ export const VoiceRecorder = ({
       {showEnginePopover && !isRecording && !loading && (
         <div
           ref={popoverRef}
-          className="absolute top-full right-0 mt-2 z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"
+          className="absolute top-full right-0 mt-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-200"
         >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 w-[260px]">
             <div className="flex items-center gap-2 mb-3">
@@ -490,7 +490,6 @@ export const VoiceRecorder = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowRedactModal(true);
-                          setShowEnginePopover(false);
                         }}
                         className={`p-1.5 rounded-lg shrink-0 ${isSelected ? 'hover:bg-white/20 text-white/80 hover:text-white' : 'hover:bg-slate-200 text-slate-400 hover:text-[#1a2256]'}`}
                         title="Configure Data Redaction"
