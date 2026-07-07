@@ -624,11 +624,34 @@ const DealDetailsPage = () => {
 
       const dealContextText = getDealContextTextForPrompt(dealContextRecord);
 
-      const systemInstructions = buildDealVoiceSystemInstructions(
+      let systemInstructions = buildDealVoiceSystemInstructions(
         consultationId || '',
         extendedDeal,
         dealContextText
       );
+
+      const savedRedactOptions = localStorage.getItem('redactOptions');
+      if (savedRedactOptions && savedRedactOptions !== '[]') {
+        const formData = new FormData();
+        formData.append('context', systemInstructions);
+        formData.append('redact_options', savedRedactOptions);
+        formData.append('action', 'initializeAgentContext');
+
+        try {
+          const maskRes = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
+            method: 'POST',
+            body: formData
+          });
+          if (maskRes.ok) {
+            const maskData = await maskRes.json();
+            if (maskData && maskData[0]) {
+              systemInstructions = maskData[0].answer || maskData[0].context || maskData[0].masked_context || systemInstructions;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to mask system instructions:', e);
+        }
+      }
       const tools = getGeminiVoiceTools(dealContextRecord);
 
       await startGeminiVoiceAgent(

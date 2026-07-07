@@ -275,12 +275,36 @@ export const VoiceRecorder = ({
           : null;
         const dealContextText = getDealContextTextForPrompt(dealContextRecord);
         const geminiTools = selectedVoiceEngine === 'on-premises' ? [] : getGeminiVoiceTools(dealContextRecord);
-        const systemInstructionsString = buildDealVoiceSystemInstructions(
+        let systemInstructionsString = buildDealVoiceSystemInstructions(
           admissionId || '',
           extendedContextData ?? { dealId: admissionId },
           dealContextText,
           { waitForUser: true, engine: selectedVoiceEngine }
         );
+
+        const savedRedactOptions = localStorage.getItem('redactOptions');
+        if (savedRedactOptions && savedRedactOptions !== '[]') {
+          const formData = new FormData();
+          formData.append('context', systemInstructionsString);
+          formData.append('redact_options', savedRedactOptions);
+          formData.append('action', 'initializeAgentContext');
+
+          try {
+            const maskRes = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
+              method: 'POST',
+              body: formData
+            });
+            if (maskRes.ok) {
+              const maskData = await maskRes.json();
+              if (maskData && maskData[0]) {
+                // Try to find the masked context in common return fields
+                systemInstructionsString = maskData[0].answer || maskData[0].context || maskData[0].masked_context || systemInstructionsString;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to mask system instructions:', e);
+          }
+        }
 
         await startGeminiVoiceAgent(
           ephemeralKey,
