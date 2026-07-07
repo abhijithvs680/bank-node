@@ -3005,7 +3005,7 @@ const DealDetailsPage = () => {
 
       {/* Query Deals Dialog */}
       <Dialog open={isQueryChatOpen} onOpenChange={setIsQueryChatOpen}>
-        <DialogContent className="max-w-[1050px] w-[95vw] h-[620px] p-0 gap-0 overflow-hidden rounded-[24px] border-[#e2e8f0] bg-white shadow-2xl [&>button]:hidden z-[9999] flex flex-row font-['Inter']">
+        <DialogContent className="max-w-[1050px] w-[95vw] h-[620px] p-0 gap-0 overflow-hidden rounded-[24px] border-[#e2e8f0] bg-white shadow-2xl [&>button]:hidden flex flex-row font-['Inter']">
 
           {/* Left Sidebar */}
           <div className={`bg-[#f4f6fc] border-r border-slate-200/80 flex flex-col transition-all duration-300 ${isSidebarExpanded ? 'w-[260px]' : 'w-[72px]'}`}>
