@@ -645,7 +645,19 @@ const DealDetailsPage = () => {
           if (maskRes.ok) {
             const maskData = await maskRes.json();
             if (maskData && maskData[0]) {
-              systemInstructions = maskData[0].answer || maskData[0].context || maskData[0].masked_context || systemInstructions;
+              const originalContext = systemInstructions;
+              let maskedContext = maskData[0].masked_text || maskData[0].answer || maskData[0].context || maskData[0].masked_context;
+              
+              if (maskedContext) {
+                const originalFirstWord = originalContext.split(/\s+/)[0];
+                const maskedFirstWord = maskedContext.split(/\s+/)[0];
+                
+                if (maskedFirstWord !== originalFirstWord && maskedFirstWord.startsWith('<') && maskedFirstWord.endsWith('>')) {
+                  maskedContext = maskedContext.replace(maskedFirstWord, originalFirstWord);
+                }
+                
+                systemInstructions = maskedContext;
+              }
             }
           }
         } catch (e) {

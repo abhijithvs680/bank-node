@@ -297,8 +297,19 @@ export const VoiceRecorder = ({
             if (maskRes.ok) {
               const maskData = await maskRes.json();
               if (maskData && maskData[0]) {
-                // Try to find the masked context in common return fields
-                systemInstructionsString = maskData[0].answer || maskData[0].context || maskData[0].masked_context || systemInstructionsString;
+                const originalContext = systemInstructionsString;
+                let maskedContext = maskData[0].masked_text || maskData[0].answer || maskData[0].context || maskData[0].masked_context;
+                
+                if (maskedContext) {
+                  const originalFirstWord = originalContext.split(/\s+/)[0];
+                  const maskedFirstWord = maskedContext.split(/\s+/)[0];
+                  
+                  if (maskedFirstWord !== originalFirstWord && maskedFirstWord.startsWith('<') && maskedFirstWord.endsWith('>')) {
+                    maskedContext = maskedContext.replace(maskedFirstWord, originalFirstWord);
+                  }
+                  
+                  systemInstructionsString = maskedContext;
+                }
               }
             }
           } catch (e) {
