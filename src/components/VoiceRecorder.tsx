@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { startGeminiVoiceAgent, stopGeminiVoiceAgent, startContinuousSpeechRecognition, sendGeminiFunctionCallOutput, touchVoiceAgentActivity } from "@/components/openaiVoiceAgent";
 import { VoiceIdleModal } from '@/components/VoiceIdleModal';
+import { DataRedactModal } from '@/components/DataRedactModal';
+import { ShieldAlert } from 'lucide-react';
 import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
 import {
   buildDealVoiceSystemInstructions,
@@ -78,9 +80,18 @@ export const VoiceRecorder = ({
   const [showIdleModal, setShowIdleModal] = useState(false);
   const [showEnginePopover, setShowEnginePopover] = useState(false);
   const [selectedVoiceEngine, setSelectedVoiceEngine] = useState('cloud-llm');
+  const [showRedactModal, setShowRedactModal] = useState(false);
+  const [voiceRedactOptions, setVoiceRedactOptions] = useState<string[]>(() => {
+    const saved = localStorage.getItem('voiceRedactOptions');
+    return saved ? JSON.parse(saved) : [];
+  });
   const popoverRef = useRef<HTMLDivElement>(null);
   const lastUserPromptRef = useRef<string>('');
   const sessionIdRef = useRef<string>('');
+
+  useEffect(() => {
+    localStorage.setItem('voiceRedactOptions', JSON.stringify(voiceRedactOptions));
+  }, [voiceRedactOptions]);
 
   // Stop voice when the route/path changes
   const location = useLocation();
@@ -209,7 +220,7 @@ export const VoiceRecorder = ({
 
   // Close popover when clicking outside
   useEffect(() => {
-    if (!showEnginePopover) return;
+    if (!showEnginePopover || showRedactModal) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setShowEnginePopover(false);
@@ -217,7 +228,7 @@ export const VoiceRecorder = ({
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showEnginePopover]);
+  }, [showEnginePopover, showRedactModal]);
 
   // Fire-and-forget voice analytics recording
   const recordVoiceAnalytics = (prompt: string, answer: string) => {
@@ -282,8 +293,8 @@ export const VoiceRecorder = ({
           { waitForUser: true, engine: selectedVoiceEngine }
         );
 
-        const savedRedactOptions = localStorage.getItem('redactOptions');
-        if (savedRedactOptions && savedRedactOptions !== '[]') {
+        const savedRedactOptions = localStorage.getItem('voiceRedactOptions');
+        if (selectedVoiceEngine === 'data-redacted-flow' && savedRedactOptions && savedRedactOptions !== '[]') {
           const formData = new FormData();
           formData.append('context', systemInstructionsString);
           formData.append('redact_options', savedRedactOptions);
@@ -375,6 +386,12 @@ export const VoiceRecorder = ({
   return (
     <div className="relative bg-gradient-bg flex items-center">
       <VoiceIdleModal open={showIdleModal} onClose={() => setShowIdleModal(false)} />
+      <DataRedactModal 
+        isOpen={showRedactModal} 
+        onClose={() => setShowRedactModal(false)} 
+        selectedOptions={voiceRedactOptions} 
+        onSelectionChange={setVoiceRedactOptions} 
+      />
       {loading ? (
         <div className={`_gradient-border ${voiceMode ? 'active' : ''} `}>
           <div className={`voice-overlay ${voiceMode ? 'active' : ''} listening`}>
@@ -444,6 +461,7 @@ export const VoiceRecorder = ({
                 { value: 'cloud-llm', label: 'Cloud-LLM', desc: 'Cloud-hosted model', color: 'blue' },
                 { value: 'on-premises', label: 'On-Premises', desc: 'Local infrastructure', color: 'violet' },
                 { value: 'on-premises-lora', label: 'On-Premises-LoRA', desc: 'Fine-tuned local model', color: 'emerald' },
+                { value: 'data-redacted-flow', label: 'Data Redacted Flow', desc: 'AI with PII Masking', color: 'red' },
               ].map(opt => {
                 const isSelected = selectedVoiceEngine === opt.value;
                 return (
@@ -463,8 +481,20 @@ export const VoiceRecorder = ({
                       <span className={`text-[11px] font-bold block ${isSelected ? 'text-white' : 'text-[#1a2256]'}`}>{opt.label}</span>
                       <span className={`text-[9px] font-medium ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>{opt.desc}</span>
                     </div>
+                    {opt.value === 'data-redacted-flow' && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowRedactModal(true);
+                        }}
+                        className={`p-1.5 rounded-lg shrink-0 ${isSelected ? 'hover:bg-white/20 text-white/80 hover:text-white' : 'hover:bg-slate-200 text-slate-400 hover:text-[#1a2256]'}`}
+                        title="Configure Data Redaction"
+                      >
+                        <ShieldAlert className="w-4 h-4" />
+                      </div>
+                    )}
                     {isSelected && (
-                      <svg className="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg className="w-4 h-4 text-white shrink-0 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
