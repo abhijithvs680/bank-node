@@ -456,7 +456,7 @@ CRITICAL INSTRUCTIONS:
     ? 'You are a helpful AI Voice Assistant for a Bank Loan Lending Platform. Speak in English by default. Only switch to another language if the user explicitly asks you to do so. Do not introduce yourself or greet at session start—wait for the user to speak first.'
     : 'You are a helpful AI Voice Assistant for a Bank Loan Lending Platform. Speak in English by default. Only switch to another language if the user explicitly asks you to do so.';
 
-  const uiDataSection = staticContext
+  const uiDataSection = (staticContext && options?.engine !== 'data-redacted-flow')
     ? `\n--- UI STATIC DATA CONTEXT (Currently visible to user) ---\n${JSON.stringify(staticContext, null, 2)}\n----------------------------------------------------------\n`
     : '';
 
