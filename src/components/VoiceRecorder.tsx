@@ -284,19 +284,13 @@ export const VoiceRecorder = ({
         const extendedContextData = patientData
           ? getAllStaticContextForDeal(admissionId || '', patientData)
           : null;
-        const dealContextText = getDealContextTextForPrompt(dealContextRecord);
+        let dealContextText = getDealContextTextForPrompt(dealContextRecord);
         const geminiTools = selectedVoiceEngine === 'on-premises' ? [] : getGeminiVoiceTools(dealContextRecord);
-        let systemInstructionsString = buildDealVoiceSystemInstructions(
-          admissionId || '',
-          extendedContextData ?? { dealId: admissionId },
-          dealContextText,
-          { waitForUser: true, engine: selectedVoiceEngine }
-        );
 
         const savedRedactOptions = localStorage.getItem('voiceRedactOptions');
         if (selectedVoiceEngine === 'data-redacted-flow' && savedRedactOptions && savedRedactOptions !== '[]') {
           const formData = new FormData();
-          formData.append('context', systemInstructionsString);
+          formData.append('context', dealContextText);
           formData.append('redact_options', savedRedactOptions);
           formData.append('action', 'initializeAgentContext');
 
@@ -308,18 +302,18 @@ export const VoiceRecorder = ({
             if (maskRes.ok) {
               const maskData = await maskRes.json();
               if (maskData && maskData[0]) {
-                const originalContext = systemInstructionsString;
+                const originalContext = dealContextText;
                 let maskedContext = maskData[0].masked_text || maskData[0].answer || maskData[0].context || maskData[0].masked_context;
                 
                 if (maskedContext) {
-                  const originalFirstWord = originalContext.split(/\s+/)[0];
-                  const maskedFirstWord = maskedContext.split(/\s+/)[0];
+                  const originalFirstWord = originalContext.split(/\s+/)[0] || '';
+                  const maskedFirstWord = maskedContext.split(/\s+/)[0] || '';
                   
-                  if (maskedFirstWord !== originalFirstWord && maskedFirstWord.startsWith('<') && maskedFirstWord.endsWith('>')) {
+                  if (originalFirstWord && maskedFirstWord !== originalFirstWord && maskedFirstWord.startsWith('<') && maskedFirstWord.endsWith('>')) {
                     maskedContext = maskedContext.replace(maskedFirstWord, originalFirstWord);
                   }
                   
-                  systemInstructionsString = maskedContext;
+                  dealContextText = maskedContext;
                   // If masked context is active, strip data-leaking tools but keep safe UI tools
                   if (geminiTools.length > 0 && geminiTools[0].functionDeclarations) {
                     geminiTools[0].functionDeclarations = geminiTools[0].functionDeclarations.filter(
@@ -330,9 +324,16 @@ export const VoiceRecorder = ({
               }
             }
           } catch (e) {
-            console.error('Failed to mask system instructions:', e);
+            console.error('Failed to mask deal context:', e);
           }
         }
+
+        let systemInstructionsString = buildDealVoiceSystemInstructions(
+          admissionId || '',
+          extendedContextData ?? { dealId: admissionId },
+          dealContextText,
+          { waitForUser: true, engine: selectedVoiceEngine }
+        );
 
         await startGeminiVoiceAgent(
           ephemeralKey,
