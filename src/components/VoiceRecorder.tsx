@@ -465,7 +465,7 @@ export const VoiceRecorder = ({
                 { value: 'cloud-llm', label: 'Cloud-LLM', desc: 'Cloud-hosted model', color: 'blue' },
                 { value: 'on-premises', label: 'On-Premises', desc: 'Local infrastructure', color: 'violet' },
                 { value: 'on-premises-lora', label: 'On-Premises-LoRA', desc: 'Fine-tuned local model', color: 'emerald' },
-                { value: 'data-redacted-flow', label: 'Data Redacted Flow', desc: 'AI with PII Masking', color: 'red' },
+                { value: 'data-redacted-flow', label: 'Data Redacted Flow', desc: 'AI with Data-Masking', color: 'red' },
               ].map(opt => {
                 const isSelected = selectedVoiceEngine === opt.value;
                 return (

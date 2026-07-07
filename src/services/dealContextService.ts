@@ -464,12 +464,17 @@ CRITICAL INSTRUCTIONS:
   const currentDate = format(now, 'yyyy-MM-dd');
   const currentDateTime = format(now, "EEEE, MMMM d, yyyy 'at' h:mm a");
 
+  const engineSpecificRules = options?.engine === 'data-redacted-flow'
+    ? '\nCRITICAL DATA REDACTION RULES:\n- If the user asks for data that has been masked, redacted, or is missing from the context due to redaction, you MUST state that you do not have access to that information.\n- Do NOT hallucinate, guess, or attempt to fulfill the user\'s query for redacted data using outside knowledge.\n'
+    : '';
+
   return `${intro}
 You are a bank loan lending platform deal assistant helping with Deal ID: ${dealId}.
 
 CURRENT DATE & TIME:
 Today is ${currentDateTime} (${currentDate}).
 Use this when interpreting relative dates (today, yesterday, overdue, due soon, next week, etc.) and when the user asks about timing or deadlines.
+${engineSpecificRules}
 
 Answer the user's questions based on the deal data below. If you need checklist achievements, file status, or data not in the context, use the query_table tool. For notes and notifications use create_deal_note: create_note for notes only, notify_users for reminders/notifications only, create_note_and_notify when both are requested.
 
