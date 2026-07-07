@@ -309,6 +309,8 @@ export const VoiceRecorder = ({
                   }
                   
                   systemInstructionsString = maskedContext;
+                  // If masked context is active, strip tools to prevent unmasked data leakage
+                  geminiTools.length = 0;
                 }
               }
             }
