@@ -320,8 +320,12 @@ export const VoiceRecorder = ({
                   }
                   
                   systemInstructionsString = maskedContext;
-                  // If masked context is active, strip tools to prevent unmasked data leakage
-                  geminiTools.length = 0;
+                  // If masked context is active, strip data-leaking tools but keep safe UI tools
+                  if (geminiTools.length > 0 && geminiTools[0].functionDeclarations) {
+                    geminiTools[0].functionDeclarations = geminiTools[0].functionDeclarations.filter(
+                      (tool: any) => tool.name === 'create_deal_note' || tool.name === 'manage_deal_modals'
+                    );
+                  }
                 }
               }
             }
@@ -486,6 +490,7 @@ export const VoiceRecorder = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowRedactModal(true);
+                          setShowEnginePopover(false);
                         }}
                         className={`p-1.5 rounded-lg shrink-0 ${isSelected ? 'hover:bg-white/20 text-white/80 hover:text-white' : 'hover:bg-slate-200 text-slate-400 hover:text-[#1a2256]'}`}
                         title="Configure Data Redaction"
