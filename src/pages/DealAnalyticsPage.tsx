@@ -154,6 +154,7 @@ const DealAnalyticsPage = () => {
 
     analytics.forEach(row => {
       const eng = formatEngine(row.engine);
+      if (eng === 'data-redacted-flow') return;
       if (!engineGroups[eng]) {
         engineGroups[eng] = { count: 0, prompt: 0, candidate: 0, total: 0, cost: 0, latency: 0 };
       }
