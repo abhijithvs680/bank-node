@@ -4,6 +4,7 @@ import { LabResult } from '@/types/patient';
 import { PDFSidebar } from './PDFSidebar';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import { RelativeTime } from '@/components/RelativeTime';
 import { Touchable } from '@/components/ui/touchable';
 import {
@@ -404,6 +405,7 @@ export const RecentResults = ({
 }: RecentResultsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { user } = useUser();
   const { toast } = useToast();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [openFileId, setOpenFileId] = useState<string | null>(null);
@@ -426,8 +428,34 @@ export const RecentResults = ({
   });
 
   useEffect(() => {
+    if (user?.primaryEmailAddress?.emailAddress) {
+      fetch(`${API_BASE_URL}/data_redact_config?email=${user.primaryEmailAddress.emailAddress}&type=file`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.redact_options) {
+            setSelectedRedactOptions(data.redact_options);
+          }
+        })
+        .catch(err => console.error('Failed to fetch file redact config:', err));
+    }
+  }, [user?.primaryEmailAddress?.emailAddress]);
+
+  useEffect(() => {
     localStorage.setItem('redactOptions', JSON.stringify(selectedRedactOptions));
-  }, [selectedRedactOptions]);
+    if (user?.primaryEmailAddress?.emailAddress) {
+      fetch(`${API_BASE_URL}/data_redact_config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: user.primaryEmailAddress.emailAddress,
+          type: 'file',
+          redact_options: selectedRedactOptions
+        })
+      }).catch(err => console.error('Failed to save file redact config:', err));
+    }
+  }, [selectedRedactOptions, user?.primaryEmailAddress?.emailAddress]);
 
   // Sort uploaded files so that the last uploaded document is first in order
   const sortedFilesForDisplay = useMemo(() => {
