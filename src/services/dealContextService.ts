@@ -442,7 +442,7 @@ export function buildDealVoiceSystemInstructions(
   dealId: string,
   staticContext: unknown,
   dealContextText: string,
-  options?: { waitForUser?: boolean; engine?: string }
+  options?: { waitForUser?: boolean; engine?: string; redactOptions?: string[] }
 ): string {
   if (options?.engine === 'on-premises') {
     return `You are a local on-premises bank loan lending platform deal assistant.
@@ -465,7 +465,7 @@ CRITICAL INSTRUCTIONS:
   const currentDateTime = format(now, "EEEE, MMMM d, yyyy 'at' h:mm a");
 
   const engineSpecificRules = options?.engine === 'data-redacted-flow'
-    ? '\nCRITICAL DATA REDACTION RULES:\n- If the user asks for data that has been masked, redacted, or is missing from the context due to redaction, you MUST state that you do not have access to that information.\n- Do NOT hallucinate, guess, or attempt to fulfill the user\'s query for redacted data using outside knowledge.\n'
+    ? `\nCRITICAL DATA REDACTION RULES:\n- This is the Data Redact Flow. Based on the user's configuration, the following categories of data are explicitly masked and redacted from your context: ${(options.redactOptions && options.redactOptions.length > 0) ? options.redactOptions.join(', ') : 'None'}.\n- If the user asks for data that has been masked, redacted, or is missing from the context due to redaction, you MUST state that you do not have access to that information.\n- Do NOT hallucinate, guess, or attempt to fulfill the user's query for redacted data using outside knowledge.\n- When creating notes, reminders, or notifications, DO NOT assume or hallucinate the redacted data. Instead, you MUST mask the data using angle-bracket placeholders such as <Date>, <Financial>, <Amount>, <Person>, <Organization>, etc.\n- Note that the context provided to you may already contain these masks (e.g., <Financial> instead of an amount). You must preserve and use these exact masks when generating responses, notes, or notifications.\n`
     : '';
 
   return `${intro}

@@ -362,7 +362,7 @@ export const VoiceRecorder = ({
           admissionId || '',
           extendedContextData ?? { dealId: admissionId },
           dealContextText,
-          { waitForUser: true, engine: selectedVoiceEngine }
+          { waitForUser: true, engine: selectedVoiceEngine, redactOptions: voiceRedactOptions }
         );
 
         await startGeminiVoiceAgent(
