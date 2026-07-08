@@ -177,9 +177,10 @@ interface UploadedFileRowProps {
   onRunChecklist?: (file: UploadedFile) => void;
   onDelete?: (file: UploadedFile) => void;
   isDeleting?: boolean;
+  onFilePreview?: (fileId: string, fileName: string) => void;
 }
 
-const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI, onRunChecklist, onDelete, isDeleting }: UploadedFileRowProps) => {
+const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI, onRunChecklist, onDelete, isDeleting, onFilePreview }: UploadedFileRowProps) => {
   const isUploading = file.isUploading;
   const isAnalyzing = file.isAnalyzing;
   const isBusy = isUploading || isAnalyzing;
@@ -219,7 +220,18 @@ const UploadedFileRow = ({ file, isOpen, onToggle, onClauseClick, onAskAI, onRun
             <FileText className="w-4 h-4 text-[#64549f]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[0.9rem] font-bold text-[#1a2256] truncate">{file.name}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                if (!isBusy && !hasError && file.fileId && onFilePreview) {
+                  e.stopPropagation();
+                  onFilePreview(file.fileId, file.name);
+                }
+              }}
+              className="text-[0.9rem] font-bold text-[#1a2256] truncate hover:text-[#64549f] hover:underline text-left cursor-pointer transition-colors focus:outline-none"
+            >
+              {file.name}
+            </button>
             <p className="text-[0.75rem] text-[#6e6868] font-medium mt-0.5">{statusText}</p>
           </div>
           {isBusy ? (
@@ -544,13 +556,20 @@ export const RecentResults = ({
     }
   };
 
-  const handleClauseClick = (fileId: string | undefined, fileName: string, pageNumber: number, boundingBoxes?: BoundingBox[]) => {
-    if (fileId) {
-      setViewingFileUrl(`${API_BASE_URL}/download_document?deal_id=${admissionId}&file_id=${fileId}`);
-      setViewingFileName(fileName);
-    }
+  const handleClauseClick = (fileId: string | undefined, fileName: string, pageNumber: number, boundingBoxes: BoundingBox[] = []) => {
+    if (!fileId || !admissionId) return;
+    setViewingFileUrl(`${API_BASE_URL}/download_document?deal_id=${admissionId}&file_id=${fileId}`);
+    setViewingFileName(fileName);
     setViewingTargetPage(pageNumber);
-    setViewingTargetBoxes(boundingBoxes || []);
+    setViewingTargetBoxes(boundingBoxes);
+  };
+
+  const handleFilePreview = (fileId: string, fileName: string) => {
+    if (!admissionId) return;
+    setViewingFileUrl(`${API_BASE_URL}/download_document?deal_id=${admissionId}&file_id=${fileId}`);
+    setViewingFileName(fileName);
+    setViewingTargetPage(undefined);
+    setViewingTargetBoxes([]);
   };
 
   // Filter reports that have files
@@ -706,6 +725,7 @@ export const RecentResults = ({
             isOpen={openFileId === file.id}
             onToggle={() => setOpenFileId(openFileId === file.id ? null : file.id)}
             onClauseClick={handleClauseClick}
+            onFilePreview={handleFilePreview}
             onAskAI={onAskAI}
             onRunChecklist={handleRunChecklist}
             onDelete={handleDeleteRequest}
