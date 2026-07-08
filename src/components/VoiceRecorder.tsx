@@ -17,7 +17,7 @@ import {
   loadDealContext,
 } from "@/services/dealContextService";
 import { useLocation } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 import './AnimationsOnly.css';
 import handfreeMagicSvg from "../img/handfree magic.svg";
 
@@ -72,7 +72,7 @@ export const VoiceRecorder = ({
   patientData,
 }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const { user } = useUser();
+  const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [voiceMode, setVoiceMode] = useState(true);
   const intervalRef = useRef(null);
@@ -92,8 +92,8 @@ export const VoiceRecorder = ({
   const sessionIdRef = useRef<string>('');
 
   useEffect(() => {
-    if (user?.primaryEmailAddress?.emailAddress) {
-      fetch(`${API_BASE_URL}/data_redact_config?email=${user.primaryEmailAddress.emailAddress}&type=voice`)
+    if (user?.email) {
+      fetch(`${API_BASE_URL}/data_redact_config?email=${user.email}&type=voice`)
         .then(res => res.json())
         .then(data => {
           if (data && data.redact_options) {
@@ -102,26 +102,26 @@ export const VoiceRecorder = ({
         })
         .catch(err => console.error('Failed to fetch voice redact config:', err));
     }
-  }, [user?.primaryEmailAddress?.emailAddress]);
+  }, [user?.email]);
 
   useEffect(() => {
     localStorage.setItem('voiceRedactOptions', JSON.stringify(voiceRedactOptions));
     
     // Save to backend
-    if (user?.primaryEmailAddress?.emailAddress) {
+    if (user?.email) {
       fetch(`${API_BASE_URL}/data_redact_config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          email: user.primaryEmailAddress.emailAddress,
+          email: user.email,
           type: 'voice',
           redact_options: voiceRedactOptions
         })
       }).catch(err => console.error('Failed to save voice redact config:', err));
     }
-  }, [voiceRedactOptions, user?.primaryEmailAddress?.emailAddress]);
+  }, [voiceRedactOptions, user?.email]);
 
   // Stop voice when the route/path changes
   const location = useLocation();
