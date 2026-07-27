@@ -43,9 +43,9 @@ class AuthService {
 
     if (isMockAdmin) {
       const mockPayload = {
-        uid: "9999",
-        fname: "Admin",
-        email: email,
+        uid: "1472",
+        fname: "Abhijith ",
+        email: "abhijith@vizru.com",
         exp: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60 // 1 year expiry
       };
       const mockPayloadBase64 = btoa(JSON.stringify(mockPayload));
@@ -58,10 +58,10 @@ class AuthService {
       localStorage.removeItem('useCookieAuth');
 
       return {
-        id: 9999,
-        firstName: "Admin",
-        lastName: "User",
-        email: email,
+        id: 1472,
+        firstName: "Abhijith",
+        lastName: "",
+        email: "abhijith@vizru.com",
         JWTtoken: mockToken,
         refresh_token: mockRefreshToken,
         ExternalSocketServer: "wss://wss.vizru.studio",
@@ -80,9 +80,9 @@ class AuthService {
   // Validate OTP and Login with Phone
   async loginWithPhone(phone: string, otp: string): Promise<User> {
     const mockPayload = {
-      uid: "9999",
-      fname: "Doctor",
-      email: "doctor@gmail.com",
+      uid: "1472",
+      fname: "Abhijith ",
+      email: "abhijith@vizru.com",
       exp: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60
     };
     const mockPayloadBase64 = btoa(JSON.stringify(mockPayload));
@@ -93,10 +93,10 @@ class AuthService {
     localStorage.setItem('tenantId', "204");
 
     return {
-      id: 9999,
-      firstName: "Doctor",
-      lastName: "User",
-      email: "doctor@gmail.com",
+      id: 1472,
+      firstName: "Abhijith",
+      lastName: "",
+      email: "abhijith@vizru.com",
       JWTtoken: mockToken,
       refresh_token: "mock_refresh_token",
       ExternalSocketServer: "wss://wss.vizru.studio",
@@ -108,9 +108,9 @@ class AuthService {
   // Refresh Access Token
   async refreshAccessToken(): Promise<string> {
     const mockPayload = {
-      uid: "9999",
-      fname: "Admin",
-      email: "admin@gmail.com",
+      uid: "1472",
+      fname: "Abhijith ",
+      email: "abhijith@vizru.com",
       exp: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60
     };
     const mockPayloadBase64 = btoa(JSON.stringify(mockPayload));
