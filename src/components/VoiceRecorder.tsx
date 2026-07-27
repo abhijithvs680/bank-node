@@ -322,7 +322,8 @@ export const VoiceRecorder = ({
         const savedRedactOptions = localStorage.getItem('voiceRedactOptions');
         if (selectedVoiceEngine === 'data-redacted-flow' && savedRedactOptions && savedRedactOptions !== '[]') {
           const formData = new FormData();
-          formData.append('context', dealContextText);
+          const combinedContextForRedaction = `${dealContextText}\n--- UI STATIC DATA CONTEXT ---\n${JSON.stringify(extendedContextData, null, 2)}\n----------------------------------------------------------\n`;
+          formData.append('context', combinedContextForRedaction);
           formData.append('redact_options', savedRedactOptions);
           formData.append('action', 'initializeAgentContext');
 
