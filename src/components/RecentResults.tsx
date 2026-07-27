@@ -5,6 +5,7 @@ import { PDFSidebar } from './PDFSidebar';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSocket } from "@/contexts/SocketContext";
 import { RelativeTime } from '@/components/RelativeTime';
 import { Touchable } from '@/components/ui/touchable';
 import {
@@ -439,6 +440,8 @@ export const RecentResults = ({
     }
   });
 
+  const { addListener, removeListener } = useSocket();
+
   useEffect(() => {
     if (user?.email) {
       fetch(`${API_BASE_URL}/data_redact_config?email=${user.email}&type=file`)
@@ -629,6 +632,20 @@ export const RecentResults = ({
   const handleChecklistModalClose = () => {
     setChecklistModalFile(null);
   };
+
+  useEffect(() => {
+    const handleSFDCFileUpload = () => {
+      console.log('Received SFDCFileUpload socket event. Refreshing deal files.');
+      if (admissionId) {
+        loadDealFiles();
+      }
+    };
+
+    addListener('SFDCFileUpload', handleSFDCFileUpload);
+    return () => {
+      removeListener('SFDCFileUpload', handleSFDCFileUpload);
+    };
+  }, [addListener, removeListener, admissionId, loadDealFiles]);
 
   // Handle file selection from native browser
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
