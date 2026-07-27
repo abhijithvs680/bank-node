@@ -32,8 +32,6 @@ const STATIC_PLATFORM_USER = {
   domain: "innov-dev.beta.injomo.com",
   persistant: "1"
 };
-const STATIC_PLATFORM_TOKEN = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify(STATIC_PLATFORM_USER))}.mock_signature`;
-
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [primaryConnected, setPrimaryConnected] = useState(false);
@@ -44,7 +42,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const listenersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
   
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const addListener = (eventName: string, callback: (data: any) => void) => {
     if (!listenersRef.current.has(eventName)) {
@@ -89,7 +87,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated) {
       // Disconnect both sockets
       if (primarySocketRef.current) {
         console.log("[SocketContext] Disconnecting primary socket");
@@ -106,39 +104,48 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
+    let isMounted = true;
+
     const connectSockets = async () => {
       let externalToken = localStorage.getItem("externalToken") || "";
       const jwt = localStorage.getItem("jwtToken") || "";
 
-      if (!externalToken && jwt) {
-        try {
-          // Attempt to fetch the platform user token using JWT
-          const res = await axios.get("https://innov-dev.beta.injomo.com/workflow.trigger/getusertoken6a6742a801e15", {
+      // We need to fetch the real token using the static user payload
+      try {
+        const res = await axios.post(
+          "https://innov-dev.beta.injomo.com/workflow.trigger/getusertoken6a6742a801e15",
+          STATIC_PLATFORM_USER,
+          {
             headers: {
-              Authorization: `Bearer ${jwt}`
+              "Content-Type": "application/json"
             }
-          });
-          const tokenData = res.data?.token || res.data?.result || res.data;
-          if (typeof tokenData === 'object' && tokenData?.token) {
-              externalToken = tokenData.token;
-          } else if (typeof tokenData === 'string') {
-              externalToken = tokenData;
           }
-          
-          if (externalToken && typeof externalToken === 'string') {
-              localStorage.setItem("externalToken", externalToken);
-          }
-        } catch(err) {
-          console.error("Failed to fetch external user token", err);
+        );
+        
+        let tokenData = res.data;
+        if (Array.isArray(tokenData) && tokenData.length > 0) {
+          tokenData = tokenData[0];
         }
+        
+        if (tokenData?.token) {
+          externalToken = tokenData.token;
+          localStorage.setItem("externalToken", externalToken);
+        } else if (typeof tokenData === 'string' && tokenData) {
+          externalToken = tokenData;
+          localStorage.setItem("externalToken", externalToken);
+        }
+      } catch(err) {
+        console.error("Failed to fetch real platform user token using static user", err);
       }
 
-      const tenantId = localStorage.getItem("tenantId") || "204";
-      const externalSocketServer = localStorage.getItem("externalSocketServer") || "";
+      if (!isMounted) return;
 
-      const username = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.email;
-      const userId = user.id?.toString() || "";
-      const email = user.email || "";
+      const tenantId = localStorage.getItem("tenantId") || "204";
+      const externalSocketServer = localStorage.getItem("externalSocketServer") || "wss://wss.vizru.studio";
+
+      const username = "Abhijith";
+      const userId = "1472";
+      const email = "abhijith@vizru.com";
 
       const lid = localStorage.getItem("user_details_Location_GDID") ||
                   localStorage.getItem("user_details_LocationID") ||
@@ -147,10 +154,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const initSocketSession = (socket: Socket) => {
         // 1. Emit vizru_user authentication event
         socket.emit("vizru_user", {
-          username: "Abhijith", // use static user's name
-          email: STATIC_PLATFORM_USER.email,
-          id: STATIC_PLATFORM_USER.uid,
-          auth_token: STATIC_PLATFORM_TOKEN,
+          username,
+          email,
+          id: userId,
+          auth_token: externalToken || jwt,
           tid: tenantId,
         });
 
@@ -169,7 +176,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const primarySocket = io(primaryUrl, {
         query: {
-          authorization: STATIC_PLATFORM_TOKEN,
+          authorization: externalToken || jwt,
           tenent_id: tenantId,
           EIO: "3",
           transport: "websocket",
@@ -253,6 +260,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     connectSockets();
 
     return () => {
+      isMounted = false;
       console.log("[SocketContext] Cleaning up both socket connections");
       if (primarySocketRef.current) {
         primarySocketRef.current.disconnect();
@@ -265,7 +273,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPrimaryConnected(false);
       setExternalConnected(false);
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated]);
 
   return (
     <SocketContext.Provider
