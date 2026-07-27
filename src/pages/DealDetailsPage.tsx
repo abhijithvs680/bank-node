@@ -2574,6 +2574,7 @@ const DealDetailsPage = () => {
 
             <VoiceRecorder
               admissionId={consultationId || ''}
+              facilitiesData={facilitiesData}
               patientData={{
                 dealName: patient.dealName,
                 dealId: patient.dealId,

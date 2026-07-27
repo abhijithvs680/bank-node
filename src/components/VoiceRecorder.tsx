@@ -65,11 +65,13 @@ interface VoiceRecorderProps {
   customCategories?: string;
   enabledCategories?: any[];
   currentMedication?: string;
+  facilitiesData?: any[];
 }
 
 export const VoiceRecorder = ({
   admissionId,
   patientData,
+  facilitiesData = [],
 }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const { user } = useAuth();
@@ -312,7 +314,7 @@ export const VoiceRecorder = ({
         });
 
         const extendedContextData = patientData
-          ? getAllStaticContextForDeal(admissionId || '', patientData)
+          ? getAllStaticContextForDeal(admissionId || '', patientData, facilitiesData)
           : null;
         let dealContextText = getDealContextTextForPrompt(dealContextRecord);
         const geminiTools = selectedVoiceEngine === 'on-premises' ? [] : getGeminiVoiceTools(dealContextRecord);
