@@ -31,9 +31,10 @@ interface LoanInfo {
 interface FacilityAndLoansProps {
   consultationId: string;
   currency?: string;
+  facilitiesData?: any[];
 }
 
-export const FacilityAndLoans = ({ consultationId, currency = "ZAR" }: FacilityAndLoansProps) => {
+export const FacilityAndLoans = ({ consultationId, currency = "ZAR", facilitiesData = [] }: FacilityAndLoansProps) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [loanModalFacility, setLoanModalFacility] = useState<FacilityItem | null>(null);
 
@@ -41,241 +42,35 @@ export const FacilityAndLoans = ({ consultationId, currency = "ZAR" }: FacilityA
     setOpenIndex(openIndex === idx ? null : idx);
   };
 
+  // Map the API data structure to the UI structure expected by the component
   const getFacilityData = (): FacilityItem[] => {
-    switch (consultationId) {
-      case "6008": // Apollo Syndication
-        return [
-          {
-            facilityNumber: "#0000177260",
-            name: "Senior Secured Term Loan",
-            type: "TERM",
-            description: "Senior Secured Facility for Apollo Energy Group",
-            origination: "SYNDICATION",
-            noOfLenders: 5,
-            effectiveDate: "14 May 2023",
-            expirationDate: "14 May 2033",
-            amount: "USD 100,000,000.00",
-            repaymentProfile: "Amortising - Semi-Annual",
-            availabilityDate: "14 Nov 2023",
-            agencyFee: "25,000.00",
-            loan: {
-              loanId: "LN-6008-001",
-              principalBalance: "USD 60,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 May 2025",
-              loanAmount: "USD 100,000,000.00",
-              maturityDate: "14 May 2033",
-              interestRatePeriod: "3 Months",
-              currentPeriodEnd: "31 Jul 2025"
-            }
-          },
-          {
-            facilityNumber: "#0000177261",
-            name: "Revolving Credit Facility",
-            type: "REVOLVING",
-            description: "Revolving General Corporate Purposes Commitment",
-            origination: "SYNDICATION",
-            noOfLenders: 3,
-            effectiveDate: "14 May 2023",
-            expirationDate: "14 May 2030",
-            amount: "USD 50,000,000.00",
-            repaymentProfile: "Bullet Repayment",
-            availabilityDate: "14 May 2030",
-            agencyFee: "10,000.00",
-            loan: {
-              loanId: "LN-6008-002",
-              principalBalance: "USD 30,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 Apr 2025",
-              loanAmount: "USD 50,000,000.00",
-              maturityDate: "14 May 2030",
-              interestRatePeriod: "1 Month",
-              currentPeriodEnd: "30 Jun 2025"
-            }
-          }
-        ];
-
-      case "6009": // Project Horizon
-        return [
-          {
-            facilityNumber: "#0000177262",
-            name: "Project Term Loan",
-            type: "TERM",
-            description: "First Loss Project Term Loan Infrastructure Finance",
-            origination: "SYNDICATION",
-            noOfLenders: 4,
-            effectiveDate: "16 May 2024",
-            expirationDate: "16 May 2036",
-            amount: "ZAR 600,000,000.00",
-            repaymentProfile: "Amortising - Quarterly",
-            availabilityDate: "16 May 2026",
-            agencyFee: "50,000.00",
-            loan: {
-              loanId: "LN-6009-001",
-              principalBalance: "ZAR 400,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 Apr 2025",
-              loanAmount: "ZAR 600,000,000.00",
-              maturityDate: "16 May 2036",
-              interestRatePeriod: "3 Months",
-              currentPeriodEnd: "30 Jun 2025"
-            }
-          },
-          {
-            facilityNumber: "#0000177263",
-            name: "Debt Service Reserve Facility",
-            type: "RESERVE",
-            description: "Debt Service Reserve Liquidity Commitment",
-            origination: "BILATERAL",
-            noOfLenders: 1,
-            effectiveDate: "16 May 2024",
-            expirationDate: "16 May 2036",
-            amount: "ZAR 200,000,000.00",
-            repaymentProfile: "Bullet Repayment",
-            availabilityDate: "16 May 2036",
-            agencyFee: "0.00",
-            loan: {
-              loanId: "LN-6009-002",
-              principalBalance: "ZAR 80,000,000.00",
-              interestRateType: "Fixed",
-              currentPeriodStart: "01 Jan 2025",
-              loanAmount: "ZAR 200,000,000.00",
-              maturityDate: "16 May 2036",
-              interestRatePeriod: "12 Months",
-              currentPeriodEnd: "31 Dec 2025"
-            }
-          }
-        ];
-
-      case "5001": // Beacon Finance
-        return [
-          {
-            facilityNumber: "#0000177264",
-            name: "Acquisition Term Loan",
-            type: "TERM",
-            description: "Acquisition Financing Term Commitment A",
-            origination: "SYNDICATION",
-            noOfLenders: 2,
-            effectiveDate: "16 May 2023",
-            expirationDate: "16 May 2029",
-            amount: "ZAR 200,000,000.00",
-            repaymentProfile: "Bullet Repayment",
-            availabilityDate: "16 Nov 2023",
-            agencyFee: "12,000.00",
-            loan: {
-              loanId: "LN-5001-001",
-              principalBalance: "ZAR 150,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 Mar 2025",
-              loanAmount: "ZAR 200,000,000.00",
-              maturityDate: "16 May 2029",
-              interestRatePeriod: "3 Months",
-              currentPeriodEnd: "31 May 2025"
-            }
-          },
-          {
-            facilityNumber: "#0000177265",
-            name: "Revolving Facility",
-            type: "REVOLVING",
-            description: "Revolving Corporate Commitments",
-            origination: "BILATERAL",
-            noOfLenders: 1,
-            effectiveDate: "16 May 2023",
-            expirationDate: "16 May 2028",
-            amount: "ZAR 50,000,000.00",
-            repaymentProfile: "Bullet Repayment",
-            availabilityDate: "16 May 2028",
-            agencyFee: "0.00",
-            loan: {
-              loanId: "LN-5001-002",
-              principalBalance: "ZAR 25,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 May 2025",
-              loanAmount: "ZAR 50,000,000.00",
-              maturityDate: "16 May 2028",
-              interestRatePeriod: "1 Month",
-              currentPeriodEnd: "31 May 2025"
-            }
-          }
-        ];
-
-      case "1001": // GoodLock
-      default:
-        return [
-          {
-            facilityNumber: "#0000177257",
-            name: "Term Loan A",
-            type: "TERM",
-            description: "First Loss Facility Corporate Sponsor A",
-            origination: "SYNDICATION",
-            noOfLenders: 3,
-            effectiveDate: "15 May 2024",
-            expirationDate: "15 May 2031",
-            amount: "ZAR 300,000,000.00",
-            repaymentProfile: "Amortising - Semi-Annual",
-            availabilityDate: "15 Nov 2024",
-            agencyFee: "15,000.00",
-            loan: {
-              loanId: "LN-1001-001",
-              principalBalance: "ZAR 200,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 Apr 2025",
-              loanAmount: "ZAR 300,000,000.00",
-              maturityDate: "15 May 2031",
-              interestRatePeriod: "3 Months",
-              currentPeriodEnd: "30 Jun 2025"
-            }
-          },
-          {
-            facilityNumber: "#0000177258",
-            name: "Revolving Credit Facility (RCF)",
-            type: "REVOLVING",
-            description: "Revolving Facility Corporate Commitment",
-            origination: "BILATERAL",
-            noOfLenders: 1,
-            effectiveDate: "15 May 2024",
-            expirationDate: "15 May 2029",
-            amount: "ZAR 150,000,000.00",
-            repaymentProfile: "Bullet Repayment",
-            availabilityDate: "15 May 2029",
-            agencyFee: "0.00",
-            loan: {
-              loanId: "LN-1001-002",
-              principalBalance: "ZAR 100,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 May 2025",
-              loanAmount: "ZAR 150,000,000.00",
-              maturityDate: "15 May 2029",
-              interestRatePeriod: "1 Month",
-              currentPeriodEnd: "31 May 2025"
-            }
-          },
-          {
-            facilityNumber: "#0000177259",
-            name: "Working Capital Facility",
-            type: "WORKING CAPITAL",
-            description: "Working Capital and Ancillary Drawdown Commitment",
-            origination: "BILATERAL",
-            noOfLenders: 1,
-            effectiveDate: "15 May 2024",
-            expirationDate: "15 May 2027",
-            amount: "ZAR 50,000,000.00",
-            repaymentProfile: "Bullet Repayment",
-            availabilityDate: "15 May 2027",
-            agencyFee: "0.00",
-            loan: {
-              loanId: "LN-1001-003",
-              principalBalance: "ZAR 50,000,000.00",
-              interestRateType: "Floating",
-              currentPeriodStart: "01 May 2025",
-              loanAmount: "ZAR 50,000,000.00",
-              maturityDate: "15 May 2027",
-              interestRatePeriod: "1 Month",
-              currentPeriodEnd: "31 May 2025"
-            }
-          }
-        ];
+    if (facilitiesData && facilitiesData.length > 0) {
+      return facilitiesData.map(fac => ({
+        facilityNumber: `#${fac.ACBS_Facility_Number || ''}`,
+        name: fac.Facility_Name || 'Unknown Facility',
+        type: fac.Facility_Type || 'UNKNOWN',
+        description: fac.Description || '',
+        origination: fac.Origination || '',
+        noOfLenders: parseInt(fac.No_of_Lenders || '0', 10),
+        effectiveDate: fac.Effective_Date || '',
+        expirationDate: fac.Expiration_Date || '',
+        amount: `${currency} ${fac.Facility_Amount || '0.00'}`,
+        repaymentProfile: fac.Repayment_Profile || '',
+        availabilityDate: fac.Availability_Date || '',
+        agencyFee: fac.Agency_Fee || '0.00',
+        loan: fac.loan || {
+          loanId: `LN-${fac.ACBS_Facility_Number}-001`,
+          principalBalance: `${currency} ${fac.Facility_Amount || '0.00'}`,
+          interestRateType: "Floating",
+          currentPeriodStart: "N/A",
+          loanAmount: `${currency} ${fac.Facility_Amount || '0.00'}`,
+          maturityDate: fac.Expiration_Date || 'N/A',
+          interestRatePeriod: "N/A",
+          currentPeriodEnd: "N/A"
+        }
+      }));
     }
+    return [];
   };
 
   const facilities = getFacilityData();

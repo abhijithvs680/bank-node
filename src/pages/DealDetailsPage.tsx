@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePatientDataSocket } from '@/hooks/useSocket';
+import { useSocket } from "@/contexts/SocketContext";
 import { Patient, VitalSigns, Medication, LabResult } from '@/types/patient';
 import { ChatContextWrapper } from '@/components/ChatContextWrapper';
 
@@ -303,6 +304,61 @@ const DealDetailsPage = () => {
     () => getPatientTypeFromPath(location.pathname),
     [location.pathname],
   );
+  const [facilitiesData, setFacilitiesData] = useState<any[]>([]);
+  const { addListener, removeListener } = useSocket();
+
+  useEffect(() => {
+    if (!consultationId) return;
+    fetch('https://innov-dev.beta.injomo.com/workflow.trigger/getfacilityinformation6a679b8397096', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dealId: consultationId })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setFacilitiesData(data);
+        } else if (data.data && Array.isArray(data.data)) {
+          setFacilitiesData(data.data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch facility data', err));
+  }, [consultationId]);
+
+  useEffect(() => {
+    const handleFacilityDataUpdate = (payload: any) => {
+      console.log('Received Facilty_Data_Update payload', payload);
+      try {
+        let updateData = payload;
+        if (typeof payload.data === 'string') {
+          updateData = JSON.parse(payload.data);
+        } else if (payload.data) {
+          updateData = payload.data;
+        }
+
+        if (Array.isArray(updateData)) {
+          updateData = updateData[0];
+        }
+
+        if (updateData && updateData.ACBS_Facility_Number) {
+          setFacilitiesData(prev => prev.map(fac => {
+            if (fac.ACBS_Facility_Number === updateData.ACBS_Facility_Number) {
+              return { ...fac, ...updateData };
+            }
+            return fac;
+          }));
+        }
+      } catch (err) {
+        console.error('Error processing Facilty_Data_Update:', err);
+      }
+    };
+
+    addListener('Facilty_Data_Update', handleFacilityDataUpdate);
+    return () => {
+      removeListener('Facilty_Data_Update', handleFacilityDataUpdate);
+    };
+  }, [addListener, removeListener]);
+
   const [patientData, setPatientData] = useState<Patient[]>([]);
   const [localLogs, setLocalLogs] = useState<Record<string, AILogEntry[]>>({});
   const [aiLogsLoading, setAiLogsLoading] = useState(false);
@@ -605,7 +661,7 @@ const DealDetailsPage = () => {
     try {
       setIsVoiceActive(true);
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
-      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData);
 
       const [res, dealContextRecord] = await Promise.all([
         fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
@@ -831,7 +887,7 @@ const DealDetailsPage = () => {
 
     try {
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
-      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal);
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData);
 
       // Ensure a valid session exists in backend
       const targetSessionId = querySessionId || `session-${Date.now()}`;
@@ -2633,7 +2689,7 @@ const DealDetailsPage = () => {
               {/* Patient Care Tab content */}
               <TabsContent value="patient-care" forceMount className={`mt-0 outline-none space-y-4 min-h-[600px] animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out ${activeTab !== 'patient-care' ? 'hidden' : ''}`}>
                 {patientType === 'inpatient' ? (
-                  <FacilityAndLoans consultationId={consultationId || ""} currency={patientData?.[0]?.currency} />
+                  <FacilityAndLoans consultationId={consultationId || ""} currency={patientData?.[0]?.currency} facilitiesData={facilitiesData} />
                 ) : (
                   <>
                     <CurrentVitalSigns onAddVitals={() => setShowAddVitals(true)} vitals={vitals} loading={loading} error={error} />
