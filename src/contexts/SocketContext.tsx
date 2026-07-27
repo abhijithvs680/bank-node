@@ -42,7 +42,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const listenersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
   
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const addListener = (eventName: string, callback: (data: any) => void) => {
     if (!listenersRef.current.has(eventName)) {
@@ -143,12 +143,25 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const tenantId = localStorage.getItem("tenantId") || "204";
       const externalSocketServer = localStorage.getItem("externalSocketServer") || "wss://wss.vizru.studio";
 
-      const username = "Abhijith";
-      const userId = "1472";
-      const email = "abhijith@vizru.com";
+      // CRITICAL FIX: The username, id, and email MUST EXACTLY MATCH the token payload,
+      // including trailing spaces, otherwise the socket server rejects the connection.
+      // Token payload uses: {"fname":"Abhijith ","uid":"1472","email":"abhijith@vizru.com"}
+      const username = STATIC_PLATFORM_USER.fname;
+      const userId = STATIC_PLATFORM_USER.uid;
+      const email = STATIC_PLATFORM_USER.email;
 
       const lid = localStorage.getItem("user_details_Location_GDID") ||
+                  localStorage.getItem("user_details_LocationGDID") ||
+                  localStorage.getItem("user_details_location_gdid") ||
                   localStorage.getItem("user_details_LocationID") ||
+                  localStorage.getItem("user_details_LocationId") ||
+                  localStorage.getItem("user_details_location_id") ||
+                  localStorage.getItem("user_details_locationId") ||
+                  localStorage.getItem("user_details_lid") ||
+                  localStorage.getItem("user_details_Location") ||
+                  localStorage.getItem("user_details_location") ||
+                  localStorage.getItem("user_details_Network_GDID") ||
+                  localStorage.getItem("user_details_Organization_GDID") ||
                   "1120";
 
       const initSocketSession = (socket: Socket) => {
@@ -273,7 +286,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPrimaryConnected(false);
       setExternalConnected(false);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   return (
     <SocketContext.Provider
