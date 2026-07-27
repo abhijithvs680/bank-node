@@ -24,6 +24,17 @@ export const useSocket = () => {
 
 const STATIC_JOHN_DOE_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdF9uYW1lIjoiSm9obiIsImxhc3RfbmFtZSI6IkRvZSIsImVtYWlsIjoiam9obkBkb2UuY29tIn0.VecL2MImatj3_4y7I-y0sCoIOd3WPn86Z6ltQQ8fPwg";
 
+const STATIC_PLATFORM_USER = {
+  fname: "Abhijith ",
+  uid: "1472",
+  email: "abhijith@vizru.com",
+  exp: 1784973524,
+  domain: "innov-dev.beta.injomo.com",
+  persistant: "1"
+};
+const STATIC_PLATFORM_TOKEN = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify(STATIC_PLATFORM_USER))}.mock_signature`;
+
+
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [primaryConnected, setPrimaryConnected] = useState(false);
   const [externalConnected, setExternalConnected] = useState(false);
@@ -136,10 +147,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const initSocketSession = (socket: Socket) => {
         // 1. Emit vizru_user authentication event
         socket.emit("vizru_user", {
-          username,
-          email,
-          id: userId,
-          auth_token: externalToken || jwt,
+          username: "Abhijith", // use static user's name
+          email: STATIC_PLATFORM_USER.email,
+          id: STATIC_PLATFORM_USER.uid,
+          auth_token: STATIC_PLATFORM_TOKEN,
           tid: tenantId,
         });
 
@@ -158,7 +169,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const primarySocket = io(primaryUrl, {
         query: {
-          authorization: externalToken || jwt,
+          authorization: STATIC_PLATFORM_TOKEN,
           tenent_id: tenantId,
           EIO: "3",
           transport: "websocket",
