@@ -1,34 +1,28 @@
 import { useEffect, useCallback, useState } from 'react';
-import { socketService, SocketEventCallback, PatientDataUpdatePayload } from '@/services/socketService';
+import { useSocket as useContextSocket } from '@/contexts/SocketContext';
+import { PatientDataUpdatePayload } from '@/services/socketService';
 
 export const useSocket = () => {
-  const [isConnected, setIsConnected] = useState(socketService.getConnectionStatus());
+  const { connected, addListener, removeListener, emit: contextEmit } = useContextSocket();
+  const [isConnected, setIsConnected] = useState(connected);
+
+  useEffect(() => {
+    setIsConnected(connected);
+  }, [connected]);
 
   // Subscribe to an event
-  const subscribe = useCallback((event: string, callback: SocketEventCallback) => {
-    socketService.on(event, callback);
+  const subscribe = useCallback((event: string, callback: (payload: any) => void) => {
+    addListener(event, callback);
     
     return () => {
-      socketService.off(event, callback);
+      removeListener(event, callback);
     };
-  }, []);
+  }, [addListener, removeListener]);
 
   // Emit an event
   const emit = useCallback((event: string, data: any) => {
-    socketService.emit(event, data);
-  }, []);
-
-  // Update connection status periodically
-  useEffect(() => {
-    const checkConnection = () => {
-      setIsConnected(socketService.getConnectionStatus());
-    };
-
-    const interval = setInterval(checkConnection, 2000);
-    checkConnection(); // Initial check
-    
-    return () => clearInterval(interval);
-  }, []);
+    contextEmit(event, data);
+  }, [contextEmit]);
 
   return { subscribe, emit, isConnected };
 };

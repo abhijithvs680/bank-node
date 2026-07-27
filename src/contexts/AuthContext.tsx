@@ -20,7 +20,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cookieUser = await authService.checkCookieAuthStatus();
       if (cookieUser) {
         setUser(cookieUser);
-        socketService.connect();
         setLoading(false);
         return;
       }
@@ -38,8 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const currentUser = authService.getCurrentUser();
             if (currentUser) {
               setUser(currentUser);
-              // Connect socket after restoring session
-              socketService.connect();
             }
           } catch (error) {
             console.error('Failed to refresh token on init:', error);
@@ -50,8 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const currentUser = authService.getCurrentUser();
           if (currentUser) {
             setUser(currentUser);
-            // Connect socket after restoring session
-            socketService.connect();
           }
         }
       }
@@ -93,9 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await authService.login(email, password);
       setUser(userData);
 
-      // Connect socket after successful login
-      socketService.connect();
-
       toast({
         title: 'Login Successful',
         description: `Welcome back, ${userData.firstName}!`,
@@ -133,9 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await authService.loginWithPhone(phone, otp);
       setUser(userData);
 
-      // Connect socket after successful login
-      socketService.connect();
-
       toast({
         title: 'Login Successful',
         description: `Welcome, ${userData.firstName}!`,
@@ -152,9 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    // Disconnect socket before clearing tokens
-    socketService.disconnect();
-
     authService.clearTokens();
     setUser(null);
     toast({
@@ -180,9 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userData = await authService.loginWithUrlToken(base64Token);
       setUser(userData);
-
-      // Connect socket after successful login
-      socketService.connect();
 
       toast({
         title: 'Login Successful',

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SocketProvider } from "./contexts/SocketContext";
 import { BrandingProvider } from "./contexts/BrandingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
@@ -26,19 +27,21 @@ const App = () => (
       <BrandingProvider>
         <HashRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<ProtectedRoute><Navigate to="/corporate-deals" replace /></ProtectedRoute>} />
-              <Route path="/corporate-deals" element={<ProtectedRoute><CorporateDealsPage /></ProtectedRoute>} />
-              <Route path="/deals/:consultationId" element={<ProtectedRoute><DealDetailsPage /></ProtectedRoute>} />
-              <Route path="/deals/:consultationId/analytics" element={<ProtectedRoute><DealAnalyticsPage /></ProtectedRoute>} />
-              <Route path="/borrower/:consultationId" element={<ProtectedRoute><BorrowerDetailsPage /></ProtectedRoute>} />
-              <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-              <Route path="/market-scan" element={<ProtectedRoute><MarketScanPage /></ProtectedRoute>} />
-              <Route path="/clause-management" element={<ProtectedRoute><ClauseManagementPage /></ProtectedRoute>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <SocketProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<ProtectedRoute><Navigate to="/corporate-deals" replace /></ProtectedRoute>} />
+                <Route path="/corporate-deals" element={<ProtectedRoute><CorporateDealsPage /></ProtectedRoute>} />
+                <Route path="/deals/:consultationId" element={<ProtectedRoute><DealDetailsPage /></ProtectedRoute>} />
+                <Route path="/deals/:consultationId/analytics" element={<ProtectedRoute><DealAnalyticsPage /></ProtectedRoute>} />
+                <Route path="/borrower/:consultationId" element={<ProtectedRoute><BorrowerDetailsPage /></ProtectedRoute>} />
+                <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+                <Route path="/market-scan" element={<ProtectedRoute><MarketScanPage /></ProtectedRoute>} />
+                <Route path="/clause-management" element={<ProtectedRoute><ClauseManagementPage /></ProtectedRoute>} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SocketProvider>
           </AuthProvider>
         </HashRouter>
       </BrandingProvider>
