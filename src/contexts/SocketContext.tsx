@@ -141,7 +141,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!isMounted) return;
 
       const tenantId = localStorage.getItem("tenantId") || "204";
-      const externalSocketServer = localStorage.getItem("externalSocketServer") || "wss://wss.vizru.studio";
+      let externalSocketServer = localStorage.getItem("externalSocketServer");
+      if (!externalSocketServer || externalSocketServer === "wss://wss.vizru.studio") {
+        externalSocketServer = "wss://chat.beta.injomo.com:2053";
+      }
 
       // CRITICAL FIX: The username, id, and email MUST EXACTLY MATCH the token payload,
       // including trailing spaces, otherwise the socket server rejects the connection.
