@@ -53,7 +53,7 @@ class AuthService {
       const mockRefreshToken = "mock_refresh_token";
 
       this.setTokens(mockToken, mockRefreshToken);
-      localStorage.setItem('externalSocketServer', "wss://wss.vizru.studio");
+      localStorage.setItem('externalSocketServer', "wss://chat.beta.injomo.com:2053");
       localStorage.setItem('tenantId', "204");
       localStorage.removeItem('useCookieAuth');
 
@@ -64,7 +64,7 @@ class AuthService {
         email: "abhijith@vizru.com",
         JWTtoken: mockToken,
         refresh_token: mockRefreshToken,
-        ExternalSocketServer: "wss://wss.vizru.studio",
+        ExternalSocketServer: "wss://chat.beta.injomo.com:2053",
         ChatWorkflow: "Workflow",
         TenantId: 204,
       };
@@ -89,7 +89,7 @@ class AuthService {
     const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${mockPayloadBase64}.mock_signature`;
     
     this.setTokens(mockToken, "mock_refresh_token");
-    localStorage.setItem('externalSocketServer', "wss://wss.vizru.studio");
+    localStorage.setItem('externalSocketServer', "wss://chat.beta.injomo.com:2053");
     localStorage.setItem('tenantId', "204");
 
     return {
@@ -99,7 +99,7 @@ class AuthService {
       email: "abhijith@vizru.com",
       JWTtoken: mockToken,
       refresh_token: "mock_refresh_token",
-      ExternalSocketServer: "wss://wss.vizru.studio",
+      ExternalSocketServer: "wss://chat.beta.injomo.com:2053",
       ChatWorkflow: "Workflow",
       TenantId: 204,
     };
