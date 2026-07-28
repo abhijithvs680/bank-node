@@ -327,7 +327,7 @@ const DealDetailsPage = () => {
 
   useEffect(() => {
     const handleFacilityDataUpdate = (payload: any) => {
-      console.log('Received Facilty_Data_Update payload', payload);
+      console.log('Received Facility_Data_update payload', payload);
       try {
         let updateData = payload;
         if (typeof payload.data === 'string') {
@@ -349,13 +349,13 @@ const DealDetailsPage = () => {
           }));
         }
       } catch (err) {
-        console.error('Error processing Facilty_Data_Update:', err);
+        console.error('Error processing Facility_Data_update:', err);
       }
     };
 
-    addListener('Facilty_Data_Update', handleFacilityDataUpdate);
+    addListener('Facility_Data_update', handleFacilityDataUpdate);
     return () => {
-      removeListener('Facilty_Data_Update', handleFacilityDataUpdate);
+      removeListener('Facility_Data_update', handleFacilityDataUpdate);
     };
   }, [addListener, removeListener]);
 
