@@ -3,7 +3,7 @@ import { startGeminiVoiceAgent, stopGeminiVoiceAgent, startContinuousSpeechRecog
 import { VoiceIdleModal } from '@/components/VoiceIdleModal';
 import { DataRedactModal } from '@/components/DataRedactModal';
 import { ShieldAlert } from 'lucide-react';
-import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
+import { buildFacilityUpdatePayload, getAllStaticContextForDeal } from "@/utils/dealDataHelper";
 import {
   buildDealVoiceSystemInstructions,
   ensureSqliteDatabase,
@@ -254,14 +254,8 @@ export const VoiceRecorder = ({
         }
 
         const updatedFacility = { ...existingFacility, ...updates };
-        const updatedFacilitiesData = facilitiesData.map(f => 
-          f.ACBS_Facility_Number === facilityNum ? updatedFacility : f
-        );
-
-        const apiPayload = {
-          dealId: admissionId, // camelCase as required by the reference
-          ...updatedFacility
-        };
+        // Strip injomo response metadata (jsCodes, workflow_log_id, "") — same clean shape as getfacilityinformation
+        const apiPayload = buildFacilityUpdatePayload(admissionId, updatedFacility);
 
         const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
           method: 'POST',
@@ -270,7 +264,8 @@ export const VoiceRecorder = ({
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to update facility: ${response.statusText}`);
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.detail || errBody.message || `Failed to update facility: ${response.statusText}`);
         }
 
         sendGeminiFunctionCallOutput(
@@ -294,7 +289,7 @@ export const VoiceRecorder = ({
     return () => {
       document.removeEventListener('ai-update-facility-info-requested', handleUpdateFacilityInfo);
     };
-  }, [facilitiesData]);
+  }, [facilitiesData, admissionId]);
 
   useEffect(() => {
     const handleIdleTimeout = () => {

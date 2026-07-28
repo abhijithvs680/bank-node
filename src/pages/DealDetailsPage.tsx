@@ -80,7 +80,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { getAllStaticContextForDeal } from "@/utils/dealDataHelper";
+import { getAllStaticContextForDeal, sanitizeInjomoRow, sanitizeInjomoRows } from "@/utils/dealDataHelper";
 import {
   buildDealVoiceSystemInstructions,
   ensureSqliteDatabase,
@@ -317,9 +317,9 @@ const DealDetailsPage = () => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setFacilitiesData(data);
+          setFacilitiesData(sanitizeInjomoRows(data));
         } else if (data.data && Array.isArray(data.data)) {
-          setFacilitiesData(data.data);
+          setFacilitiesData(sanitizeInjomoRows(data.data));
         }
       })
       .catch(err => console.error('Failed to fetch facility data', err));
@@ -341,9 +341,10 @@ const DealDetailsPage = () => {
         }
 
         if (updateData && updateData.ACBS_Facility_Number) {
+          const cleanUpdate = sanitizeInjomoRow(updateData);
           setFacilitiesData(prev => prev.map(fac => {
-            if (fac.ACBS_Facility_Number === updateData.ACBS_Facility_Number) {
-              return { ...fac, ...updateData };
+            if (fac.ACBS_Facility_Number === cleanUpdate.ACBS_Facility_Number) {
+              return { ...fac, ...cleanUpdate };
             }
             return fac;
           }));

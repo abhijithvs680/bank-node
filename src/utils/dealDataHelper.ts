@@ -249,6 +249,40 @@ import {
   type DealParticipant,
 } from './dealParticipants';
 
+/** Injomo appends these on every workflow response row; re-posting them breaks triggers. */
+const INJOMO_RESPONSE_META_KEYS = new Set(['jsCodes', 'workflow_log_id', '']);
+
+/** Strip injomo response metadata from a facility (or similar) row. */
+export function sanitizeInjomoRow<T extends Record<string, unknown>>(row: T): T {
+  const cleaned = { ...row };
+  for (const key of INJOMO_RESPONSE_META_KEYS) {
+    delete cleaned[key];
+  }
+  return cleaned;
+}
+
+export function sanitizeInjomoRows<T extends Record<string, unknown>>(rows: T[]): T[] {
+  return rows.map((row) => sanitizeInjomoRow(row));
+}
+
+/**
+ * Clean facility update body for bankagentsdataupdatereciever.
+ * Matches the minimal scalar payload style used by getfacilityinformation.
+ */
+export function buildFacilityUpdatePayload(
+  dealId: string,
+  facility: Record<string, unknown>
+): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(sanitizeInjomoRow(facility))) {
+    if (!key) continue;
+    if (value !== null && typeof value === 'object') continue;
+    cleaned[key] = value;
+  }
+  cleaned.dealId = dealId;
+  return cleaned;
+}
+
 export const getAllStaticContextForDeal = (dealId: string, basePatientData: any, facilitiesData: any[] = [], dealFiles: any[] = []) => {
   const participants = getDealParticipants(dealId);
   return {
