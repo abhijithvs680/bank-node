@@ -362,6 +362,7 @@ const DealDetailsPage = () => {
   const [patientData, setPatientData] = useState<Patient[]>([]);
   const [localLogs, setLocalLogs] = useState<Record<string, AILogEntry[]>>({});
   const [aiLogsLoading, setAiLogsLoading] = useState(false);
+  const [dealFiles, setDealFiles] = useState<any[]>([]);
   const [isDemoSheetOpen, setIsDemoSheetOpen] = useState(false);
   const [aiNoteModal, setAiNoteModal] = useState<{
     open: boolean;
@@ -661,7 +662,7 @@ const DealDetailsPage = () => {
     try {
       setIsVoiceActive(true);
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
-      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData);
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData, dealFiles);
 
       const [res, dealContextRecord] = await Promise.all([
         fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
@@ -887,7 +888,7 @@ const DealDetailsPage = () => {
 
     try {
       const currentDeal = patientData && patientData.length > 0 ? patientData[0] : null;
-      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData);
+      const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData, dealFiles);
 
       // Ensure a valid session exists in backend
       const targetSessionId = querySessionId || `session-${Date.now()}`;
@@ -2575,6 +2576,7 @@ const DealDetailsPage = () => {
             <VoiceRecorder
               admissionId={consultationId || ''}
               facilitiesData={facilitiesData}
+              dealFiles={dealFiles}
               patientData={{
                 dealName: patient.dealName,
                 dealId: patient.dealId,
@@ -2725,6 +2727,7 @@ const DealDetailsPage = () => {
                       setIsVisitAttachmentOpen(true);
                     }}
                     onAskAI={handleAskAI}
+                    onFilesLoaded={setDealFiles}
                   />
                 </div>
               </TabsContent>

@@ -41,6 +41,7 @@ interface RecentResultsProps {
   onRefreshLabResults?: () => Promise<void>;
   onViewReport?: (index: number) => void;
   onAskAI?: (fileId: string, fileName: string) => void;
+  onFilesLoaded?: (files: UploadedFile[]) => void;
 }
 
 interface BoundingBox {
@@ -415,6 +416,7 @@ export const RecentResults = ({
   onRefreshLabResults,
   onViewReport,
   onAskAI,
+  onFilesLoaded,
 }: RecentResultsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -471,6 +473,12 @@ export const RecentResults = ({
       }).catch(err => console.error('Failed to save file redact config:', err));
     }
   }, [selectedRedactOptions, user?.email]);
+
+  useEffect(() => {
+    if (onFilesLoaded) {
+      onFilesLoaded(uploadedFiles);
+    }
+  }, [uploadedFiles, onFilesLoaded]);
 
   // Sort uploaded files so that the last uploaded document is first in order
   const sortedFilesForDisplay = useMemo(() => {

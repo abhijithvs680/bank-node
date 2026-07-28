@@ -66,12 +66,14 @@ interface VoiceRecorderProps {
   enabledCategories?: any[];
   currentMedication?: string;
   facilitiesData?: any[];
+  dealFiles?: any[];
 }
 
 export const VoiceRecorder = ({
   admissionId,
   patientData,
   facilitiesData = [],
+  dealFiles = [],
 }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const { user } = useAuth();
@@ -252,11 +254,14 @@ export const VoiceRecorder = ({
         }
 
         const updatedFacility = { ...existingFacility, ...updates };
+        const updatedFacilitiesData = facilitiesData.map(f => 
+          f.ACBS_Facility_Number === facilityNum ? updatedFacility : f
+        );
 
         const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedFacility)
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(updatedFacilitiesData)
         });
 
         if (!response.ok) {
@@ -368,7 +373,7 @@ export const VoiceRecorder = ({
         });
 
         const extendedContextData = patientData
-          ? getAllStaticContextForDeal(admissionId || '', patientData, facilitiesData)
+          ? getAllStaticContextForDeal(admissionId || '', patientData, facilitiesData, dealFiles)
           : null;
         let dealContextText = getDealContextTextForPrompt(dealContextRecord);
         const geminiTools = selectedVoiceEngine === 'on-premises' ? [] : getGeminiVoiceTools(dealContextRecord);

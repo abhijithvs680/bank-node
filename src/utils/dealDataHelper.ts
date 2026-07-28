@@ -249,7 +249,7 @@ import {
   type DealParticipant,
 } from './dealParticipants';
 
-export const getAllStaticContextForDeal = (dealId: string, basePatientData: any, facilitiesData: any[] = []) => {
+export const getAllStaticContextForDeal = (dealId: string, basePatientData: any, facilitiesData: any[] = [], dealFiles: any[] = []) => {
   const participants = getDealParticipants(dealId);
   return {
     DealDetails: basePatientData,
@@ -261,6 +261,7 @@ export const getAllStaticContextForDeal = (dealId: string, basePatientData: any,
     FinancialsAndKeyRatios: getBorrowerFinancialsData(dealId),
     RiskFactorsList: riskFactorsData,
     Facilities: facilitiesData,
+    DealFiles: dealFiles,
   };
 };
 
