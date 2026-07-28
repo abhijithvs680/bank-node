@@ -254,7 +254,8 @@ export const VoiceRecorder = ({
         }
 
         const updatedFacility = { ...existingFacility, ...updates };
-        // Strip injomo response metadata (jsCodes, workflow_log_id, "") — same clean shape as getfacilityinformation
+
+        // Strip injomo response metadata (jsCodes, workflow_log_id, "") before triggering
         const apiPayload = buildFacilityUpdatePayload(admissionId, updatedFacility);
 
         const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
@@ -264,8 +265,7 @@ export const VoiceRecorder = ({
         });
 
         if (!response.ok) {
-          const errBody = await response.json().catch(() => ({}));
-          throw new Error(errBody.detail || errBody.message || `Failed to update facility: ${response.statusText}`);
+          throw new Error(`Failed to update facility: ${response.statusText}`);
         }
 
         sendGeminiFunctionCallOutput(
@@ -289,7 +289,7 @@ export const VoiceRecorder = ({
     return () => {
       document.removeEventListener('ai-update-facility-info-requested', handleUpdateFacilityInfo);
     };
-  }, [facilitiesData, admissionId]);
+  }, [facilitiesData]);
 
   useEffect(() => {
     const handleIdleTimeout = () => {

@@ -252,30 +252,17 @@ import {
 /** Injomo appends these on every workflow response row; re-posting them breaks triggers. */
 const INJOMO_RESPONSE_META_KEYS = new Set(['jsCodes', 'workflow_log_id', '']);
 
-/** Strip injomo response metadata from a facility (or similar) row. */
-export function sanitizeInjomoRow<T extends Record<string, unknown>>(row: T): T {
-  const cleaned = { ...row };
-  for (const key of INJOMO_RESPONSE_META_KEYS) {
-    delete cleaned[key];
-  }
-  return cleaned;
-}
-
-export function sanitizeInjomoRows<T extends Record<string, unknown>>(rows: T[]): T[] {
-  return rows.map((row) => sanitizeInjomoRow(row));
-}
-
 /**
  * Clean facility update body for bankagentsdataupdatereciever.
- * Matches the minimal scalar payload style used by getfacilityinformation.
+ * Strips injomo response metadata and nested objects; keeps scalar business fields + dealId.
  */
 export function buildFacilityUpdatePayload(
   dealId: string,
   facility: Record<string, unknown>
 ): Record<string, unknown> {
   const cleaned: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(sanitizeInjomoRow(facility))) {
-    if (!key) continue;
+  for (const [key, value] of Object.entries(facility)) {
+    if (!key || INJOMO_RESPONSE_META_KEYS.has(key)) continue;
     if (value !== null && typeof value === 'object') continue;
     cleaned[key] = value;
   }
