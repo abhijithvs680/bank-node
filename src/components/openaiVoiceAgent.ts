@@ -238,6 +238,15 @@ export async function startVoiceAgent({
               }
             });
             document.dispatchEvent(event);
+          } else if (msg.name == "update_facility_info") {
+            const event = new CustomEvent('ai-update-facility-info-requested', {
+              detail: {
+                ACBS_Facility_Number: aiData.ACBS_Facility_Number,
+                updates_json: aiData.updates_json,
+                callId: msg.call_id
+              }
+            });
+            document.dispatchEvent(event);
           }
 
         } catch (error) {
@@ -841,6 +850,7 @@ function handleGeminiMessage(msg: any, callbacks?: VoiceAgentCallbacks, listenOn
       if (fn.name === "web_search") eventName = 'ai-web-search-requested';
       if (fn.name === "create_deal_note") eventName = 'ai-create-deal-note-requested';
       if (fn.name === "manage_deal_modals") eventName = 'ai-manage-deal-modals';
+      if (fn.name === "update_facility_info") eventName = 'ai-update-facility-info-requested';
 
       if (eventName) {
         // Construct the expected payload exactly as the OpenAI implementation did

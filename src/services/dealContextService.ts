@@ -425,6 +425,28 @@ export function getManageDealModalsToolDeclaration() {
   };
 }
 
+export function getUpdateFacilityInfoToolDeclaration() {
+  return {
+    name: 'update_facility_info',
+    description:
+      'Updates the properties of a specific facility. Use this when the user asks to change or update a facility\'s amount, type, date, or other details.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        ACBS_Facility_Number: {
+          type: 'STRING',
+          description: 'The unique ACBS Facility Number of the facility to update.',
+        },
+        updates_json: {
+          type: 'STRING',
+          description: 'A JSON string containing the key-value pairs of the fields to update (e.g., {"Facility_Amount": "500000000", "Facility_Type": "TERM"}).',
+        },
+      },
+      required: ['ACBS_Facility_Number', 'updates_json'],
+    },
+  };
+}
+
 export function getGeminiVoiceTools(record?: DealContextRecord) {
   return [
     {
@@ -432,6 +454,7 @@ export function getGeminiVoiceTools(record?: DealContextRecord) {
         getQueryTableToolDeclaration(record),
         getCreateDealNoteToolDeclaration(),
         getManageDealModalsToolDeclaration(),
+        getUpdateFacilityInfoToolDeclaration(),
         getWebSearchToolDeclaration(),
       ],
     },

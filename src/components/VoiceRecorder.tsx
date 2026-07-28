@@ -232,6 +232,60 @@ export const VoiceRecorder = ({
     };
   }, [admissionId]);
 
+  // Listen for update_facility_info tool calls
+  useEffect(() => {
+    const handleUpdateFacilityInfo = async (e: any) => {
+      const payload = e.detail;
+      try {
+        const facilityNum = payload.ACBS_Facility_Number;
+        const updatesJsonStr = payload.updates_json;
+
+        if (!facilityNum || !updatesJsonStr) {
+          throw new Error("Missing ACBS_Facility_Number or updates_json");
+        }
+
+        const updates = JSON.parse(updatesJsonStr);
+        const existingFacility = facilitiesData.find(f => f.ACBS_Facility_Number === facilityNum);
+
+        if (!existingFacility) {
+          throw new Error(`Facility ${facilityNum} not found in current context`);
+        }
+
+        const updatedFacility = { ...existingFacility, ...updates };
+
+        const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedFacility)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to update facility: ${response.statusText}`);
+        }
+
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'update_facility_info',
+          { success: true, message: `Successfully updated facility ${facilityNum}` },
+          { scheduling: 'INTERRUPT' }
+        );
+      } catch (err: any) {
+        console.error("update_facility_info error:", err);
+        sendGeminiFunctionCallOutput(
+          payload.callId,
+          'update_facility_info',
+          { success: false, error: err.message },
+          { scheduling: 'INTERRUPT' }
+        );
+      }
+    };
+
+    document.addEventListener('ai-update-facility-info-requested', handleUpdateFacilityInfo);
+    return () => {
+      document.removeEventListener('ai-update-facility-info-requested', handleUpdateFacilityInfo);
+    };
+  }, [facilitiesData]);
+
   useEffect(() => {
     const handleIdleTimeout = () => {
       try {
