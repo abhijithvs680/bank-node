@@ -261,7 +261,7 @@ export const VoiceRecorder = ({
         const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedFacility)
+          body: JSON.stringify([updatedFacility])
         });
 
         if (!response.ok) {
