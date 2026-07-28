@@ -258,13 +258,10 @@ export const VoiceRecorder = ({
           f.ACBS_Facility_Number === facilityNum ? updatedFacility : f
         );
 
-        const formData = new FormData();
-        formData.append('dealId', admissionId);
-        formData.append('data', JSON.stringify(updatedFacilitiesData));
-
         const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
           method: 'POST',
-          body: formData
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedFacilitiesData)
         });
 
         if (!response.ok) {
