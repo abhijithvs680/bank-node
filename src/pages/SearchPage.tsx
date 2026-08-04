@@ -551,10 +551,12 @@ Response format: { "chipType": "VENDOR_OPTIMIZATION", "scope": "GLOBAL", "title"
   // Socket.io connection
   useEffect(() => {
     const userData = authService.getCurrentUser();
-    const socketConnection = io("wss://wss.vizru.studio", {
+    const socketConnection = io("https://ai-demo.vizru-ras.com", {
       query: {
         token:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkb21haW4iOiJ2aXpydSIsIm5hbWUiOiJHdWVzdCIsImFnZW50IjoiV29ya2Zsb3cifQ.bDuKpCe3ql1OjELAwZJG6GW89Y84mfYZedqc9CI8P1U",
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdF9uYW1lIjoiSm9obiIsImxhc3RfbmFtZSI6IkRvZSIsImVtYWlsIjoiam9obkBkb2UuY29tIn0.VecL2MImatj3_4y7I-y0sCoIOd3WPn86Z6ltQQ8fPwg",
+        EIO: "3",
+        transport: "websocket",
       },
       transports: ["websocket"],
       secure: true,
@@ -566,8 +568,8 @@ Response format: { "chipType": "VENDOR_OPTIMIZATION", "scope": "GLOBAL", "title"
         email: userData.email,
         id: userData.id,
         auth_token:
-          "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmbmFtZSI6IlJhaHVsICIsInVpZCI6IjEzOTIiLCJlbWFpbCI6InJhaHVsQHZpenJ1LmNvbSIsImV4cCI6MTc1NjI3MTc4NSwiZG9tYWluIjoiaW5ub3YtZGV2LmJldGEuaW5qb21vLmNvbSIsInBlcnNpc3RhbnQiOiIxIn0.SS9vtdvkSrFopd-O6mt8wU5LKpMvHnnVL7yIX5a22So",
-        tid: 204,
+          "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmbmFtZSI6IlN5c3RlbSBVc2VyIiwidWlkIjoiMTg4IiwiZW1haWwiOiJzeXN0ZW11c2VyQHZpenJ1LmNvbSIsImV4cCI6MTc4NTk0NTExNywiZG9tYWluIjoiYWktZGVtby52aXpydS1yYXMuY29tIiwicGVyc2lzdGFudCI6IjAifQ.n0_G9OrWCNoHuHeOjILr2c1UgYnUSrbJMfDQw1nTWiA",
+        tid: 11,
       });
     });
 
@@ -652,16 +654,16 @@ Response format: { "chipType": "VENDOR_OPTIMIZATION", "scope": "GLOBAL", "title"
         "short_code",
         "inventorytableaigenerated68c93e22729b5"
       );
-      formData.append("tid", "204");
+      formData.append("tid", "11");
       formData.append("question", query);
       formData.append("prompt", "answer in a pharmacy management system context");
       formData.append(
         "payload",
-        `{"identifier": "userid","identifier_value": "1392","tags": "ai_search_res","dataset": { "jobid": "edc4b541-1aab-4129-b7d7-49ba76b00837", "job":"testJOB" }}`
+        `{"identifier": "userid","identifier_value": "188","tags": "ai_search_res","dataset": { "jobid": "edc4b541-1aab-4129-b7d7-49ba76b00837", "job":"testJOB" }}`
       );
       formData.append(
         "callback_url",
-        "https://chat.beta.injomo.com:2053/push_message"
+        "https://ai-demo.vizru-ras.com/push_message"
       );
 
       await fetch("https://spreadsheet-fastapi.injomo.com/spreadsheet-query", {

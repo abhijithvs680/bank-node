@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import io, { Socket } from "socket.io-client";
 import { useAuth } from "./AuthContext";
-import axios from "axios";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -24,13 +23,21 @@ export const useSocket = () => {
 
 const STATIC_JOHN_DOE_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdF9uYW1lIjoiSm9obiIsImxhc3RfbmFtZSI6IkRvZSIsImVtYWlsIjoiam9obkBkb2UuY29tIn0.VecL2MImatj3_4y7I-y0sCoIOd3WPn86Z6ltQQ8fPwg";
 
+/** chatsystem-v2 authorization token (System User / tenant 11) */
+const STATIC_CHATSYSTEM_AUTH_TOKEN =
+  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmbmFtZSI6IlN5c3RlbSBVc2VyIiwidWlkIjoiMTg4IiwiZW1haWwiOiJzeXN0ZW11c2VyQHZpenJ1LmNvbSIsImV4cCI6MTc4NTk0NTExNywiZG9tYWluIjoiYWktZGVtby52aXpydS1yYXMuY29tIiwicGVyc2lzdGFudCI6IjAifQ.n0_G9OrWCNoHuHeOjILr2c1UgYnUSrbJMfDQw1nTWiA";
+
+const EXTERNAL_SOCKET_URL = "https://ai-demo.vizru-ras.com";
+const PRIMARY_SOCKET_URL = "https://ai-demo.vizru-ras.com";
+const PRIMARY_SOCKET_PATH = "/chatsystem-v2/socket.io";
+
 const STATIC_PLATFORM_USER = {
-  fname: "Abhijith ",
-  uid: "1472",
-  email: "abhijith@vizru.com",
-  exp: 1784973524,
-  domain: "innov-dev.beta.injomo.com",
-  persistant: "1"
+  fname: "System User",
+  uid: "188",
+  email: "systemuser@vizru.com",
+  exp: 1785945117,
+  domain: "ai-demo.vizru-ras.com",
+  persistant: "0",
 };
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -107,48 +114,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let isMounted = true;
 
     const connectSockets = async () => {
-      let externalToken = localStorage.getItem("externalToken") || "";
-      const jwt = localStorage.getItem("jwtToken") || "";
-
-      // We need to fetch the real token using the static user payload
-      try {
-        const res = await axios.post(
-          "https://ai-demo.vizru-ras.com/workflow.trigger/getusertoken6a6742a801e15",
-          STATIC_PLATFORM_USER,
-          {
-            headers: {
-              "Content-Type": "application/json"
-            }
-          }
-        );
-        
-        let tokenData = res.data;
-        if (Array.isArray(tokenData) && tokenData.length > 0) {
-          tokenData = tokenData[0];
-        }
-        
-        if (tokenData?.token) {
-          externalToken = tokenData.token;
-          localStorage.setItem("externalToken", externalToken);
-        } else if (typeof tokenData === 'string' && tokenData) {
-          externalToken = tokenData;
-          localStorage.setItem("externalToken", externalToken);
-        }
-      } catch(err) {
-        console.error("Failed to fetch real platform user token using static user", err);
-      }
+      const chatAuthToken = STATIC_CHATSYSTEM_AUTH_TOKEN;
+      localStorage.setItem("externalToken", chatAuthToken);
 
       if (!isMounted) return;
 
-      const tenantId = localStorage.getItem("tenantId") || "204";
-      let externalSocketServer = localStorage.getItem("externalSocketServer");
-      if (!externalSocketServer || externalSocketServer === "wss://wss.vizru.studio") {
-        externalSocketServer = "wss://chat.beta.injomo.com:2053";
-      }
+      const tenantId = "11";
+      localStorage.setItem("tenantId", tenantId);
+      localStorage.setItem("externalSocketServer", EXTERNAL_SOCKET_URL);
 
-      // CRITICAL FIX: The username, id, and email MUST EXACTLY MATCH the token payload,
-      // including trailing spaces, otherwise the socket server rejects the connection.
-      // Token payload uses: {"fname":"Abhijith ","uid":"1472","email":"abhijith@vizru.com"}
+      // Username/id/email must match the chatsystem authorization token payload
       const username = STATIC_PLATFORM_USER.fname;
       const userId = STATIC_PLATFORM_USER.uid;
       const email = STATIC_PLATFORM_USER.email;
@@ -173,7 +148,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           username,
           email,
           id: userId,
-          auth_token: externalToken || jwt,
+          auth_token: chatAuthToken,
           tid: tenantId,
         });
 
@@ -185,14 +160,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
 
       // ==========================================
-      // 1. CONNECT PRIMARY CHAT SOCKET (chatv2)
+      // 1. CONNECT PRIMARY CHAT SOCKET (chatsystem-v2)
+      // wss://ai-demo.vizru-ras.com/chatsystem-v2/socket.io/?authorization=...&tenent_id=11
       // ==========================================
-      const primaryUrl = "https://chatv2.beta.injomo.com:8443";
-      console.log("[SocketContext] Connecting primary socket to:", primaryUrl);
+      console.log("[SocketContext] Connecting primary socket to:", PRIMARY_SOCKET_URL, PRIMARY_SOCKET_PATH);
 
-      const primarySocket = io(primaryUrl, {
+      const primarySocket = io(PRIMARY_SOCKET_URL, {
+        path: PRIMARY_SOCKET_PATH,
         query: {
-          authorization: externalToken || jwt,
+          authorization: chatAuthToken,
           tenent_id: tenantId,
           EIO: "3",
           transport: "websocket",
@@ -224,43 +200,42 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       // ==========================================
-      // 2. CONNECT EXTERNAL SOCKET (chat)
+      // 2. CONNECT EXTERNAL SOCKET
+      // wss://ai-demo.vizru-ras.com/socket.io/?token=...
       // ==========================================
-      if (externalSocketServer) {
-        console.log("[SocketContext] Connecting external socket to:", externalSocketServer);
+      console.log("[SocketContext] Connecting external socket to:", EXTERNAL_SOCKET_URL);
 
-        const externalSocket = io(externalSocketServer, {
-          query: {
-            token: STATIC_JOHN_DOE_TOKEN,
-            EIO: "3",
-            transport: "websocket",
-          },
-          transports: ["websocket"],
-          secure: true,
-          reconnection: true,
-          reconnectionAttempts: 20,
-          reconnectionDelay: 2000,
-          timeout: 300000,
-        });
+      const externalSocket = io(EXTERNAL_SOCKET_URL, {
+        query: {
+          token: STATIC_JOHN_DOE_TOKEN,
+          EIO: "3",
+          transport: "websocket",
+        },
+        transports: ["websocket"],
+        secure: true,
+        reconnection: true,
+        reconnectionAttempts: 20,
+        reconnectionDelay: 2000,
+        timeout: 300000,
+      });
 
-        externalSocketRef.current = externalSocket;
+      externalSocketRef.current = externalSocket;
 
-        externalSocket.on("connect", () => {
-          console.log("[SocketContext] External socket connected:", externalSocket.id);
-          setExternalConnected(true);
-          initSocketSession(externalSocket);
-        });
+      externalSocket.on("connect", () => {
+        console.log("[SocketContext] External socket connected:", externalSocket.id);
+        setExternalConnected(true);
+        initSocketSession(externalSocket);
+      });
 
-        externalSocket.on("disconnect", (reason: string) => {
-          console.log("[SocketContext] External socket disconnected:", reason);
-          setExternalConnected(false);
-        });
+      externalSocket.on("disconnect", (reason: string) => {
+        console.log("[SocketContext] External socket disconnected:", reason);
+        setExternalConnected(false);
+      });
 
-        externalSocket.on("connect_error", (error: any) => {
-          console.error("[SocketContext] External socket connection error:", error);
-          setExternalConnected(false);
-        });
-      }
+      externalSocket.on("connect_error", (error: any) => {
+        console.error("[SocketContext] External socket connection error:", error);
+        setExternalConnected(false);
+      });
 
       // Register all active context listeners to both new sockets
       listenersRef.current.forEach((callbacks, event) => {

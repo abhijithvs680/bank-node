@@ -53,8 +53,8 @@ class AuthService {
       const mockRefreshToken = "mock_refresh_token";
 
       this.setTokens(mockToken, mockRefreshToken);
-      localStorage.setItem('externalSocketServer', "wss://chat.beta.injomo.com:2053");
-      localStorage.setItem('tenantId', "204");
+      localStorage.setItem('externalSocketServer', "https://ai-demo.vizru-ras.com");
+      localStorage.setItem('tenantId', "11");
       localStorage.removeItem('useCookieAuth');
 
       return {
@@ -64,9 +64,9 @@ class AuthService {
         email: "abhijith@vizru.com",
         JWTtoken: mockToken,
         refresh_token: mockRefreshToken,
-        ExternalSocketServer: "wss://chat.beta.injomo.com:2053",
+        ExternalSocketServer: "https://ai-demo.vizru-ras.com",
         ChatWorkflow: "Workflow",
-        TenantId: 204,
+        TenantId: 11,
       };
     }
     throw new Error('Invalid credentials');
@@ -89,8 +89,8 @@ class AuthService {
     const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${mockPayloadBase64}.mock_signature`;
     
     this.setTokens(mockToken, "mock_refresh_token");
-    localStorage.setItem('externalSocketServer', "wss://chat.beta.injomo.com:2053");
-    localStorage.setItem('tenantId', "204");
+    localStorage.setItem('externalSocketServer', "https://ai-demo.vizru-ras.com");
+    localStorage.setItem('tenantId', "11");
 
     return {
       id: 1472,
@@ -99,9 +99,9 @@ class AuthService {
       email: "abhijith@vizru.com",
       JWTtoken: mockToken,
       refresh_token: "mock_refresh_token",
-      ExternalSocketServer: "wss://chat.beta.injomo.com:2053",
+      ExternalSocketServer: "https://ai-demo.vizru-ras.com",
       ChatWorkflow: "Workflow",
-      TenantId: 204,
+      TenantId: 11,
     };
   }
 
