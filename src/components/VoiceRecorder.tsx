@@ -347,7 +347,7 @@ export const VoiceRecorder = ({
       try {
         // Fetch voice key and deal index in parallel; only schema goes to Gemini (rows load on demand).
         const [res, dealContextRecord] = await Promise.all([
-          fetch('https://ai-demo.vizru-ras.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
+          fetch('https://ai-demo.vizru-ras.com/workflow.trigger/geminiephemeralkeyforgoodbank6a31a6e599048', {
             method: 'POST',
           }),
           loadDealContext(admissionId || '', { buildSqlite: false }),
