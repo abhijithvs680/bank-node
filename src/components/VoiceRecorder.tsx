@@ -258,7 +258,7 @@ export const VoiceRecorder = ({
         // Strip injomo response metadata (jsCodes, workflow_log_id, "") before triggering
         const apiPayload = buildFacilityUpdatePayload(admissionId, updatedFacility);
 
-        const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
+        const response = await fetch('https://ai-demo.vizru-ras.com/workflow.trigger/bankagentsdataupdatereciever6a6855702d36a', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiPayload)
@@ -347,7 +347,7 @@ export const VoiceRecorder = ({
       try {
         // Fetch voice key and deal index in parallel; only schema goes to Gemini (rows load on demand).
         const [res, dealContextRecord] = await Promise.all([
-          fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
+          fetch('https://ai-demo.vizru-ras.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
             method: 'POST',
           }),
           loadDealContext(admissionId || '', { buildSqlite: false }),
@@ -387,7 +387,7 @@ export const VoiceRecorder = ({
           formData.append('action', 'initializeAgentContext');
 
           try {
-            const maskRes = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
+            const maskRes = await fetch('https://ai-demo.vizru-ras.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
               method: 'POST',
               body: formData
             });

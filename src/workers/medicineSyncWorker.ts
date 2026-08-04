@@ -179,7 +179,7 @@ async function checkMetadataAPI(lastSync: number, apiBase: string, authToken: st
 self.addEventListener('message', async (event: MessageEvent<WorkerMessage>) => {
   const { type, payload } = event.data;
 
-  const apiBase = self.location?.origin || 'https://innov-dev.beta.injomo.com'
+  const apiBase = self.location?.origin || 'https://ai-demo.vizru-ras.com'
   const authToken = payload?.authToken;
 
   if (!authToken) {

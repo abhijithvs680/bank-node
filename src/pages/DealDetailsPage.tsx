@@ -309,7 +309,7 @@ const DealDetailsPage = () => {
 
   useEffect(() => {
     if (!consultationId) return;
-    fetch('https://innov-dev.beta.injomo.com/workflow.trigger/getfacilityinformation6a679b8397096', {
+    fetch('https://ai-demo.vizru-ras.com/workflow.trigger/getfacilityinformation6a679b8397096', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dealId: consultationId })
@@ -665,7 +665,7 @@ const DealDetailsPage = () => {
       const extendedDeal = getAllStaticContextForDeal(consultationId || '', currentDeal, facilitiesData, dealFiles);
 
       const [res, dealContextRecord] = await Promise.all([
-        fetch('https://innov-dev.beta.injomo.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
+        fetch('https://ai-demo.vizru-ras.com/workflow.trigger/6a31a6e5bf857664f20cad02', {
           method: 'POST',
         }),
         loadDealContext(consultationId || '', { buildSqlite: false }),

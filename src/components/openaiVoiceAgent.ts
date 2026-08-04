@@ -709,7 +709,7 @@ export async function startGeminiVoiceAgent(
       const source = geminiAudioCtx.createMediaStreamSource(geminiStream);
       
       // Construct absolute worklet URL based on window.location.pathname to avoid relative resolution from /assets/ JS bundle path
-      const workletUrl = `https://innov-dev.beta.injomo.com/bank-agents/dist/audio-processor.js`;
+      const workletUrl = `https://ai-demo.vizru-ras.com/bank-agents/dist/audio-processor.js`;
       await geminiAudioCtx.audioWorklet.addModule(workletUrl);
 
       // Instantiate the custom worklet node

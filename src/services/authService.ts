@@ -1,7 +1,7 @@
 import { LoginResponse, RefreshTokenResponse, OTPResponse, User } from '@/types/auth';
 import { parseJWT, decodeUrlToken, validateUrlToken, generateUrlToken, type UrlTokenPayload } from '@/utils/authUtils';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://innov-dev.beta.injomo.com';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://ai-demo.vizru-ras.com';
 
 const FASTAPI_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090';
 

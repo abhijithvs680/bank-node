@@ -113,7 +113,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // We need to fetch the real token using the static user payload
       try {
         const res = await axios.post(
-          "https://innov-dev.beta.injomo.com/workflow.trigger/getusertoken6a6742a801e15",
+          "https://ai-demo.vizru-ras.com/workflow.trigger/getusertoken6a6742a801e15",
           STATIC_PLATFORM_USER,
           {
             headers: {

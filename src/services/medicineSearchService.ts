@@ -83,7 +83,7 @@ export class MedicineSearchService {
               this.worker?.postMessage({
                 type: 'START_FULL_SYNC',
                 payload: {
-                  apiBase: window.location.origin || 'https://innov-dev.beta.injomo.com',
+                  apiBase: window.location.origin || 'https://ai-demo.vizru-ras.com',
                   authToken: newToken
                 }
               });
@@ -96,7 +96,7 @@ export class MedicineSearchService {
                 type: 'CHECK_METADATA',
                 payload: {
                   lastSync: storedLastSync,
-                  apiBase: window.location.origin || 'https://innov-dev.beta.injomo.com',
+                  apiBase: window.location.origin || 'https://ai-demo.vizru-ras.com',
                   authToken: newToken
                 }
               });
@@ -238,7 +238,7 @@ export class MedicineSearchService {
       this.worker.postMessage({
         type: 'START_FULL_SYNC',
         payload: {
-          apiBase: import.meta.env.VITE_API_BASE || 'https://innov-dev.beta.injomo.com',
+          apiBase: import.meta.env.VITE_API_BASE || 'https://ai-demo.vizru-ras.com',
           authToken
         }
       });
@@ -257,7 +257,7 @@ export class MedicineSearchService {
         type: 'CHECK_METADATA',
         payload: {
           lastSync: storedLastSync,
-          apiBase: window.location.origin || 'https://innov-dev.beta.injomo.com',
+          apiBase: window.location.origin || 'https://ai-demo.vizru-ras.com',
           authToken
         }
       });

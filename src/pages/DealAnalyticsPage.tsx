@@ -513,7 +513,7 @@ const DealAnalyticsPage = () => {
                               <td className="px-5 py-3.5 text-center">
                                 {row.workflow_log_id ? (
                                   <a
-                                    href={`https://innov-dev.beta.injomo.com/#workflow.debugger/${row.workflow_log_id}`}
+                                    href={`https://ai-demo.vizru-ras.com/#workflow.debugger/${row.workflow_log_id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={e => e.stopPropagation()}

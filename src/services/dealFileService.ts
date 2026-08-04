@@ -47,7 +47,7 @@ export async function uploadDealDocument(
     formData.append('redact_options', JSON.stringify(redactOptions));
   }
 
-  const response = await fetch('https://innov-dev.beta.injomo.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
+  const response = await fetch('https://ai-demo.vizru-ras.com/workflow.trigger/bankagentsorchestration6a3d14c877195', {
     method: 'POST',
     body: formData,
   });
