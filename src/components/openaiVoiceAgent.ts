@@ -677,7 +677,7 @@ export async function startGeminiVoiceAgent(
   attachModalOutcomeListener();
 
   // Connect to Gemini WebSocket
-  const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?access_token=${ephemeralKey}`;
+  const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${ephemeralKey}`;
   geminiSocket = new WebSocket(wsUrl);
 
   geminiSocket.onopen = async () => {
