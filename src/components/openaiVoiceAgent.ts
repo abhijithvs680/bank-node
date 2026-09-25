@@ -677,7 +677,7 @@ export async function startGeminiVoiceAgent(
   attachModalOutcomeListener();
 
   // Connect to Gemini WebSocket
-  const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${ephemeralKey}`;
+  const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?access_token=${ephemeralKey}`;
   geminiSocket = new WebSocket(wsUrl);
 
   geminiSocket.onopen = async () => {
@@ -691,6 +691,12 @@ export async function startGeminiVoiceAgent(
         tools: tools,
         generationConfig: {
           responseModalities: ["AUDIO"],
+          // Pin the voice; without this we inherit whatever default the current
+          // model ships with, which changes when the backend swaps models.
+          // Feminine: Aoede, Kore, Leda, Zephyr. Masculine: Puck, Charon, Fenrir, Orus.
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
+          },
           temperature: 0.1,
           topP: 0.8,
           topK: 40
